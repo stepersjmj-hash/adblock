@@ -1,0 +1,90 @@
+[
+  {
+    "id": 1,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "requestDomains": [
+        "exoclick.com",
+        "exosrv.com",
+        "exdynsrv.com",
+        "magsrv.com",
+        "realsrv.com",
+        "pemsrv.com",
+        "tsyndicate.com",
+        "trafficstars.com",
+        "juicyads.com",
+        "jads.co",
+        "adsjudo.com",
+        "trafficjunky.net",
+        "trafficjunky.com",
+        "adtng.com",
+        "contentabc.com",
+        "adsterra.com",
+        "highperformanceformat.com",
+        "profitablecpmrate.com",
+        "effectiveratecpm.com",
+        "highcpmgate.com",
+        "popads.net",
+        "popcash.net",
+        "popmyads.com",
+        "popunder.net",
+        "propellerads.com",
+        "propellerclick.com",
+        "onclicka.com",
+        "hilltopads.net",
+        "hilltopads.com",
+        "clickadu.com",
+        "clickadilla.com",
+        "adnium.com",
+        "plugrush.com",
+        "trafficfactory.biz",
+        "eroadvertising.com",
+        "ero-advertising.com",
+        "adxpansion.com",
+        "ad-maven.com",
+        "javbucks.com",
+        "googlesyndication.com",
+        "doubleclick.net"
+      ],
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame",
+        "script",
+        "image",
+        "stylesheet",
+        "xmlhttprequest",
+        "media",
+        "font",
+        "ping",
+        "websocket",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": 2,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "requestDomains": [
+        "stripchat.com",
+        "chaturbate.com",
+        "bongacams.com",
+        "livejasmin.com"
+      ],
+      "resourceTypes": [
+        "sub_frame",
+        "script",
+        "image",
+        "stylesheet",
+        "xmlhttprequest",
+        "media",
+        "font",
+        "ping",
+        "websocket",
+        "other"
+      ]
+    }
+  }
+]

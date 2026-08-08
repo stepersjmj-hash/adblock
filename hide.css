@@ -1,0 +1,31 @@
+/* 광고 컨테이너를 렌더링 전에 즉시 숨김 (제거는 cleaner.js가 담당) */
+.ads,
+.ad-box,
+.ad-banner,
+.ad-block,
+.ad-container,
+.advertisement,
+.adsbygoogle,
+ins.adsbygoogle,
+#ads,
+#ad-top,
+#ad-bottom,
+[id^="ad_"],
+[id^="ads_"],
+[class*="banner-ad"],
+[class*="ad-zone"],
+iframe[src*="exosrv"],
+iframe[src*="magsrv"],
+iframe[src*="tsyndicate"],
+iframe[src*="juicyads"],
+iframe[src*="adsterra"],
+iframe[src*="hilltopads"] {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* CSS로 텍스트 선택(드래그)을 막아둔 것 해제 */
+html, body, body * {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}
