@@ -14,6 +14,10 @@ ins.adsbygoogle,
 [id^="ads_"],
 [class*="banner-ad"],
 [class*="ad-zone"],
+.bottom-adv,
+.top-adv,
+.side-adv,
+.adv-box,
 iframe[src*="exosrv"],
 iframe[src*="magsrv"],
 iframe[src*="tsyndicate"],
@@ -22,10 +26,4 @@ iframe[src*="adsterra"],
 iframe[src*="hilltopads"] {
   display: none !important;
   visibility: hidden !important;
-}
-
-/* CSS로 텍스트 선택(드래그)을 막아둔 것 해제 */
-html, body, body * {
-  user-select: text !important;
-  -webkit-user-select: text !important;
 }

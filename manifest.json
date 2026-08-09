@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "KissJAV AdBlock",
-  "version": "1.0.0",
-  "description": "광고 네트워크 요청 차단 + 팝업/팝언더 차단 + 광고 요소 제거",
+  "name": "MJ AdBlock",
+  "version": "2.1.0",
+  "description": "광고 네트워크 요청 차단 + 팝업/팝언더 차단 + 광고 요소 제거 + 우클릭 차단 해제",
   "permissions": ["declarativeNetRequest"],
   "declarative_net_request": {
     "rule_resources": [
@@ -15,23 +15,19 @@
   },
   "content_scripts": [
     {
-      "matches": [
-        "*://kissjav.li/*",
-        "*://*.kissjav.li/*",
-        "*://kissjav.com/*",
-        "*://*.kissjav.com/*"
-      ],
+      "matches": ["<all_urls>"],
       "js": ["popup-guard.js"],
       "run_at": "document_start",
       "world": "MAIN"
     },
     {
-      "matches": [
-        "*://kissjav.li/*",
-        "*://*.kissjav.li/*",
-        "*://kissjav.com/*",
-        "*://*.kissjav.com/*"
-      ],
+      "matches": ["<all_urls>"],
+      "js": ["downloader.js"],
+      "run_at": "document_idle",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["<all_urls>"],
       "js": ["cleaner.js"],
       "css": ["hide.css"],
       "run_at": "document_end"

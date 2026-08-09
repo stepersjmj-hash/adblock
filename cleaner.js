@@ -1,6 +1,7 @@
 // 광고 요소 제거: DOM에 이미 있거나 나중에 삽입되는 광고를 계속 감시해서 삭제
+// 모든 사이트에서 동작
 (() => {
-  const AD_HINTS = /(exoclick|exosrv|magsrv|realsrv|tsyndicate|trafficstars|juicyads|jads\.co|trafficjunky|adsterra|popads|popcash|hilltopads|clickadu|onclicka|propeller|plugrush|trafficfactory|adxpansion|ad-maven|javbucks|stripchat|chaturbate|bongacams|livejasmin|doubleclick|googlesyndication)/i;
+  const AD_HINTS = /(exoclick|exosrv|exdynsrv|magsrv|realsrv|pemsrv|tsyndicate|trafficstars|juicyads|jads\.co|adsjudo|trafficjunky|adtng|adsterra|highperformanceformat|profitablecpmrate|effectiveratecpm|highcpmgate|popads\.net|popcash|popmyads|popunder|propeller(ads|click)|onclicka|hilltopads|clickadu|clickadilla|adnium|plugrush|trafficfactory|eroadvertising|ero-advertising|adxpansion|ad-maven|javbucks|coverdistilltile|qfanakacp|alfalfaemployeeresource|doubleclick|googlesyndication)/i;
 
   const AD_SELECTORS = [
     ".ads", ".ad-box", ".ad-banner", ".ad-block", ".ad-container",
@@ -8,11 +9,12 @@
     "#ads", "#ad-top", "#ad-bottom",
     "[id^='ad_']", "[id^='ads_']",
     "[class*='banner-ad']", "[class*='ad-zone']",
+    ".bottom-adv", ".top-adv", ".side-adv", ".adv-box",
     "ins.adsbygoogle"
   ].join(",");
 
   function removeAds(root) {
-    // 광고 도메인을 가리키는 iframe / script / 링크 배너 제거
+    // 광고 도메인을 가리키는 iframe / embed / 링크 배너 제거
     root.querySelectorAll("iframe[src], embed[src]").forEach((el) => {
       if (AD_HINTS.test(el.src)) el.remove();
     });
@@ -27,7 +29,9 @@
     root.querySelectorAll(AD_SELECTORS).forEach((el) => el.remove());
   }
 
-  // 화면 전체를 덮는 클릭 유도 오버레이 제거 (동영상 플레이어는 건드리지 않음)
+  // 화면 전체를 덮는 투명 클릭 유도 오버레이 제거.
+  // 오탐을 막기 위해 조건을 좁게 잡음: body 직계 자식 + 화면 90% 이상 덮음
+  // + 투명 + 내용(텍스트/영상/iframe) 없음 → 사실상 클릭 함정만 해당
   function removeOverlays() {
     document.querySelectorAll("body > div, body > a").forEach((el) => {
       const cs = getComputedStyle(el);
@@ -37,9 +41,13 @@
       const r = el.getBoundingClientRect();
       const coversScreen =
         r.width >= innerWidth * 0.9 && r.height >= innerHeight * 0.9;
-      const isTransparentClickTrap =
-        coversScreen && (cs.opacity === "0" || cs.backgroundColor === "rgba(0, 0, 0, 0)");
-      if (isTransparentClickTrap && !el.querySelector("video")) {
+      if (!coversScreen) return;
+      const isTransparent =
+        cs.opacity === "0" || cs.backgroundColor === "rgba(0, 0, 0, 0)";
+      const isEmpty =
+        (el.textContent || "").trim() === "" &&
+        !el.querySelector("video, iframe, img, input, button");
+      if (isTransparent && isEmpty) {
         el.remove();
       }
     });

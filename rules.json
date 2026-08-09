@@ -44,6 +44,9 @@
         "adxpansion.com",
         "ad-maven.com",
         "javbucks.com",
+        "coverdistilltile.com",
+        "qfanakacp.in",
+        "alfalfaemployeeresource.com",
         "googlesyndication.com",
         "doubleclick.net"
       ],
@@ -64,6 +67,64 @@
   },
   {
     "id": 2,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "regexFilter": "/solid\\.gif\\?z=\\d",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame",
+        "script",
+        "image",
+        "xmlhttprequest",
+        "ping",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": 3,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "regexFilter": "/adx/get/\\?id=\\d",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame",
+        "script",
+        "image",
+        "xmlhttprequest",
+        "ping",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": 4,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "initiatorDomains": ["kissjav.li", "kissjav.com"],
+      "excludedRequestDomains": [
+        "kissjav.li",
+        "kissjav.com",
+        "cdnhop.com",
+        "tubegifs.com",
+        "googleapis.com",
+        "gstatic.com"
+      ],
+      "resourceTypes": [
+        "script",
+        "sub_frame",
+        "xmlhttprequest",
+        "ping",
+        "websocket",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": 5,
     "priority": 1,
     "action": { "type": "block" },
     "condition": {
