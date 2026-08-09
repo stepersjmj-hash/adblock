@@ -47,6 +47,15 @@
         "coverdistilltile.com",
         "qfanakacp.in",
         "alfalfaemployeeresource.com",
+        "aboundadmirermyself.com",
+        "portalfluently.com",
+        "vivodemisrentas.net",
+        "illinformed-summer.com",
+        "diagramjawlineunhappy.com",
+        "normal-place.com",
+        "thekav.co",
+        "whitetrafsa.com",
+        "satisfactorilybewitchgreatness.com",
         "googlesyndication.com",
         "doubleclick.net"
       ],
@@ -142,6 +151,29 @@
         "xmlhttprequest",
         "media",
         "font",
+        "ping",
+        "websocket",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": 6,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "initiatorDomains": ["watchfreejavonline.co"],
+      "excludedRequestDomains": [
+        "watchfreejavonline.co",
+        "xxembed.com",
+        "cdnjs.cloudflare.com",
+        "googleapis.com",
+        "gstatic.com"
+      ],
+      "resourceTypes": [
+        "script",
+        "sub_frame",
+        "xmlhttprequest",
         "ping",
         "websocket",
         "other"

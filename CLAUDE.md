@@ -20,6 +20,16 @@
 - 전역: `<all_urls>` — 알려진 광고 네트워크 40여 개 도메인 차단 (rules.json id:1)
 - kissjav 전용 강화: 도메인을 수시로 바꾸는 광고업체(HilltopAds 계열) 때문에
   "허용 CDN 외 모든 외부 스크립트 차단" 화이트리스트 방식 사용 (rules.json id:4)
+- watchfreejavonline.co 전용 강화 (rules.json id:6): 같은 화이트리스트 방식.
+  영상은 `xxembed.com` 외부 임베드 iframe이라 반드시 허용 목록에 있어야 재생됨
+  (직접 열면 리퍼러 체크로 "Embeds disabled" — 반드시 사이트 안에서 재생 테스트).
+  허용: watchfreejavonline.co, xxembed.com, cdnjs.cloudflare.com(jQuery),
+  googleapis.com, gstatic.com. 실측 광고 도메인: aboundadmirermyself.com,
+  illinformed-summer.com, portalfluently.com, vivodemisrentas.net,
+  diagramjawlineunhappy.com, normal-place.com, thekav.co(myexo=ExoClick 래퍼),
+  whitetrafsa.com(Stripchat 위젯). 플레이어 코드에 주석 처리된
+  satisfactorilybewitchgreatness.com 팝업도 선제 차단.
+  임베드 iframe 안 팝언더 대비로 popup-guard에 `all_frames: true` 적용 (v2.2.0).
 
 ## 핵심 함정 (실제로 겪은 것)
 
@@ -82,4 +92,6 @@ node --check popup-guard.js && node --check downloader.js && node --check cleane
 
 - 광고 차단: `coverdistilltile.com` 등 실측 도메인 + 화이트리스트로 차단 확인.
 - 다운로드 버튼: kissjav 영상 페이지에서 영상 아래에 정상 표시 확인 (스크린샷 검증).
-- version 2.1.0.
+- watchfreejavonline.co: 광고 도메인 실측 후 id:6 화이트리스트 추가 (v2.2.0).
+  영상(xxembed.com 임베드) 재생 경로는 허용 목록으로 보존 — 실기기 재생 확인 권장.
+- version 2.2.0.
