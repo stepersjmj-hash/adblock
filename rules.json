@@ -56,6 +56,10 @@
         "thekav.co",
         "whitetrafsa.com",
         "satisfactorilybewitchgreatness.com",
+        "diapsidbuchloe.com",
+        "lib-net.dev",
+        "swordermislike.qpon",
+        "mulmhitch.cfd",
         "googlesyndication.com",
         "doubleclick.net"
       ],
@@ -167,6 +171,27 @@
         "watchfreejavonline.co",
         "xxembed.com",
         "cdnjs.cloudflare.com",
+        "googleapis.com",
+        "gstatic.com"
+      ],
+      "resourceTypes": [
+        "script",
+        "sub_frame",
+        "xmlhttprequest",
+        "ping",
+        "websocket",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": 7,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "initiatorDomains": ["nswpedia.com"],
+      "excludedRequestDomains": [
+        "nswpedia.com",
         "googleapis.com",
         "gstatic.com"
       ],

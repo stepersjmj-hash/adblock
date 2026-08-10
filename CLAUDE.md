@@ -30,6 +30,13 @@
   whitetrafsa.com(Stripchat 위젯). 플레이어 코드에 주석 처리된
   satisfactorilybewitchgreatness.com 팝업도 선제 차단.
   임베드 iframe 안 팝언더 대비로 popup-guard에 `all_frames: true` 적용 (v2.2.0).
+- nswpedia.com 전용 강화 (rules.json id:7, v2.3.0): 같은 화이트리스트 방식.
+  jQuery·폰트·이미지 전부 자체 호스팅이라 허용 목록이 단순함
+  (nswpedia.com, googleapis.com, gstatic.com — 뒤 둘은 안전용).
+  실측 광고 도메인: xe.diapsidbuchloe.com(로더 스크립트, Monetag/PropellerAds
+  계열), node.lib-net.dev, swordermislike.qpon, gp.mulmhitch.cfd.
+  `.qpon`/`.cfd` 같은 TLD를 쓰는 로테이션 광고망이라 개별 차단만으론 부족 →
+  화이트리스트 필수. 구글 애널리틱스/클라우드플레어 통계도 같이 차단됨(무해).
 
 ## 핵심 함정 (실제로 겪은 것)
 
@@ -94,4 +101,7 @@ node --check popup-guard.js && node --check downloader.js && node --check cleane
 - 다운로드 버튼: kissjav 영상 페이지에서 영상 아래에 정상 표시 확인 (스크린샷 검증).
 - watchfreejavonline.co: 광고 도메인 실측 후 id:6 화이트리스트 추가 (v2.2.0).
   영상(xxembed.com 임베드) 재생 경로는 허용 목록으로 보존 — 실기기 재생 확인 권장.
-- version 2.2.0.
+- nswpedia.com: 광고 도메인 실측 후 id:7 화이트리스트 추가 (v2.3.0).
+  다운로드 링크는 top-level 네비게이션이라 DNR 규칙(resourceTypes에 main_frame
+  없음)에 영향받지 않음.
+- version 2.3.0.
