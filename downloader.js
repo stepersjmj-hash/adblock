@@ -41,6 +41,101 @@
     a.remove();
   }
 
+  // ── HLS(m3u8) 다운로드: xxembed 등 임베드 전용 호스트 ──────────────
+  // 이런 호스트는 저장할 mp4 URL이 없고 HLS 스트리밍만 제공함(다운로드는 유료).
+  // 플레이어가 쓰는 것과 같은 경로(fetch, CORS 허용됨)로 세그먼트를 전부 받아
+  // 하나로 합쳐 저장한다. 결과물은 .ts 컨테이너 — VLC/팟플레이어에서 재생됨.
+  const HLS_HOSTS = ["xxembed.com"];
+
+  function getHlsInfo() {
+    const onHlsHost = HLS_HOSTS.some(
+      (h) => location.hostname === h || location.hostname.endsWith("." + h)
+    );
+    if (!onHlsHost) return null;
+    try {
+      const sources = window.jwplayer && jwplayer().getPlaylist()[0].sources;
+      const hls = sources.find(
+        (s) => /hls/i.test(s.type) || /\.m3u8/.test(s.file)
+      );
+      if (!hls) return null;
+      // 파일명: 원본 글 제목(리퍼러의 마지막 경로) > 임베드 ID > "video"
+      let name = "";
+      try {
+        name = decodeURIComponent(new URL(document.referrer).pathname)
+          .replace(/\/+$/, "")
+          .split("/")
+          .pop();
+      } catch (e) {}
+      if (!name) name = (location.pathname.match(/embed-(\w+)/) || [])[1] || "video";
+      name = name.replace(/[\\/:*?"<>|]+/g, "_").slice(0, 120);
+      return { type: "hls", url: hls.file, filename: name + ".ts" };
+    } catch (e) {
+      return null; // 플레이어가 아직 준비 안 됨
+    }
+  }
+
+  async function fetchText(url) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return res.text();
+  }
+
+  // 마스터 플레이리스트면 BANDWIDTH가 가장 높은 화질을 골라 내려감
+  async function resolveMediaPlaylist(url) {
+    const text = await fetchText(url);
+    if (!/#EXT-X-STREAM-INF/.test(text)) return { url, text };
+    const lines = text.split(/\r?\n/);
+    let best = null;
+    for (let i = 0; i < lines.length; i++) {
+      if (!lines[i].startsWith("#EXT-X-STREAM-INF")) continue;
+      const bw = parseInt((lines[i].match(/BANDWIDTH=(\d+)/) || [])[1] || "0", 10);
+      const uri = lines.slice(i + 1).find((l) => l && !l.startsWith("#"));
+      if (uri && (!best || bw > best.bw)) best = { bw, uri };
+    }
+    if (!best) throw new Error("화질 목록 없음");
+    const mediaUrl = new URL(best.uri, url).href;
+    return { url: mediaUrl, text: await fetchText(mediaUrl) };
+  }
+
+  async function startHlsDownload(info, onProgress) {
+    const { url: mediaUrl, text } = await resolveMediaPlaylist(info.url);
+    if (/#EXT-X-KEY:(?!METHOD=NONE)/.test(text)) {
+      throw new Error("암호화 스트림 미지원");
+    }
+    const initUri = (text.match(/#EXT-X-MAP:URI="([^"]+)"/) || [])[1];
+    const segs = text
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter((l) => l && !l.startsWith("#"))
+      .map((l) => new URL(l, mediaUrl).href);
+    if (!segs.length) throw new Error("세그먼트 없음");
+
+    const bufs = new Array(segs.length);
+    let done = 0;
+    const CHUNK = 4; // 서버 부담 없이 적당히 병렬로
+    for (let i = 0; i < segs.length; i += CHUNK) {
+      await Promise.all(
+        segs.slice(i, i + CHUNK).map(async (url, j) => {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          bufs[i + j] = await res.arrayBuffer();
+          onProgress(++done, segs.length);
+        })
+      );
+    }
+    const parts = initUri
+      ? [await (await fetch(new URL(initUri, mediaUrl).href)).arrayBuffer(), ...bufs]
+      : bufs;
+    const blob = new Blob(parts, { type: "video/mp2t" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = info.filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+  }
+
   const BTN_STYLE = {
     display: "inline-flex",
     alignItems: "center",
@@ -71,10 +166,30 @@
     btn.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      const fresh = getVideoInfo();
+      if (btn.dataset.busy) return; // HLS 수신 중 중복 클릭 방지
+      const fresh = getVideoInfo() || getHlsInfo();
       if (!fresh) {
         btn.textContent = "⬇ URL을 찾는 중...";
         setTimeout(() => (btn.textContent = "⬇ 영상 다운로드"), 1500);
+        return;
+      }
+      if (fresh.type === "hls") {
+        btn.dataset.busy = "1";
+        btn.textContent = "⬇ 준비 중...";
+        startHlsDownload(fresh, (done, total) => {
+          btn.textContent =
+            "⬇ 받는 중 " + Math.floor((done / total) * 100) + "% (" + done + "/" + total + ")";
+        })
+          .then(() => {
+            btn.textContent = "✓ 저장됨 (.ts — VLC/팟플레이어로 재생)";
+          })
+          .catch((err) => {
+            btn.textContent = "⬇ 실패: " + ((err && err.message) || "오류");
+          })
+          .finally(() => {
+            delete btn.dataset.busy;
+            setTimeout(() => (btn.textContent = "⬇ 영상 다운로드"), 8000);
+          });
         return;
       }
       btn.textContent = "⬇ 다운로드 시작됨...";
@@ -101,7 +216,7 @@
     Object.assign(btn.style, {
       position: "fixed",
       right: "20px",
-      bottom: "20px",
+      bottom: "70px", // 전체화면 플레이어의 하단 컨트롤 바를 가리지 않게
       margin: "0"
     });
   }
@@ -158,7 +273,7 @@
 
   // flashvars 가 준비되면 버튼을 만들고, 이후에도 버튼이 사라지면 다시 삽입 (자가 복구)
   function ensureButton() {
-    const info = getVideoInfo();
+    const info = getVideoInfo() || getHlsInfo();
     if (!info) return; // 아직 영상 정보 없음 (또는 영상 페이지 아님)
     const existing = document.getElementById(BTN_ID);
     if (existing) {

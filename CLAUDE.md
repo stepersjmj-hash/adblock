@@ -91,6 +91,10 @@
   해당 사이트의 액션 행 선택자를 추가.
 - 사이트가 HTML에 직접 심는 오버레이/공지 팝업 (외부 요청이 없어 DNR로 못 막는
   것): `cleaner.js`의 `SITE_SELECTORS`에 도메인 → 선택자 항목 추가.
+- mp4 없이 HLS(m3u8) 스트리밍만 주는 임베드 호스트 (xxembed 등):
+  `downloader.js`의 `HLS_HOSTS`에 도메인 추가. jwplayer 소스에서 m3u8을 얻어
+  최고 화질 variant의 세그먼트를 fetch로 전부 받아(플레이어와 같은 경로라
+  CORS 허용됨) 하나의 .ts로 합쳐 저장. AES-128 암호화 스트림은 미지원(에러 표시).
 
 ## 검증/문법 체크
 
@@ -118,4 +122,12 @@ node --check popup-guard.js && node --check downloader.js && node --check cleane
   추가 실측 광고/트래커 도메인을 id:1에 등록, 자체 삽입 텔레그램 팝업은
   cleaner.js SITE_SELECTORS로 제거 검증 완료 (v2.4.0). 영상은 여기도
   xxembed.com 임베드라 재생 경로 보존.
-- version 2.4.0.
+- xxembed.com HLS 다운로드 (v2.5.0): watchfreejavonline의 "다운로드" 링크는
+  실제 다운로드가 아니라 xxembed 임베드 페이지를 새 탭으로 여는 것뿐
+  (진짜 다운로드는 rutood.com 유료). → downloader.js가 xxembed 페이지에서
+  HLS 세그먼트를 받아 .ts로 합쳐 저장하는 버튼을 띄움 (우하단 플로팅).
+  파일명은 리퍼러(원본 글 슬러그)에서 따옴. 실측: 마스터 m3u8 → 최고 화질
+  variant(예: 2.4Mbps) → 세그먼트 69개, CORS 허용 확인, 부분 수신 검증 완료.
+  주의: 임베드 URL을 주소창에 직접 열면 리퍼러 없음 → "Embeds disabled".
+  반드시 사이트의 다운로드 링크(새 탭)로 열어야 재생·다운로드 모두 동작.
+- version 2.5.0.
