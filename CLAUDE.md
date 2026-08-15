@@ -30,6 +30,14 @@
   whitetrafsa.com(Stripchat 위젯). 플레이어 코드에 주석 처리된
   satisfactorilybewitchgreatness.com 팝업도 선제 차단.
   임베드 iframe 안 팝언더 대비로 popup-guard에 `all_frames: true` 적용 (v2.2.0).
+  s23.watchfreejavonline.co 같은 서브도메인 미러도 id:6이 자동 커버함
+  (DNR `initiatorDomains`/`excludedRequestDomains`는 서브도메인 포함 매칭).
+  s23 실측 추가 광고/트래커: agonizingrest.com, dtscout.com, dtscdn.com,
+  mrktmtrcs.net, crwdcntrl.net(Lotame), histats.com, rmhfrtnd.com(배너 리다이렉트).
+  네트워크 차단으론 못 막는 자체 삽입 텔레그램 팝업(`#tg-popup` "최신 접속 주소
+  안내" 오버레이)은 cleaner.js의 `SITE_SELECTORS`로 DOM에서 제거 (v2.4.0).
+  "(1) New Message!" 탭 제목 변조는 thekav.co inpage 스크립트 짓 — id:6이
+  스크립트를 차단하므로 확장 설치 환경에선 발생 안 함.
 - nswpedia.com 전용 강화 (rules.json id:7, v2.3.0): 같은 화이트리스트 방식.
   jQuery·폰트·이미지 전부 자체 호스팅이라 허용 목록이 단순함
   (nswpedia.com, googleapis.com, gstatic.com — 뒤 둘은 안전용).
@@ -81,6 +89,8 @@
 - 다운로드 버튼이 안 뜨는 새 사이트: 플레이어가 `window.flashvars`를 쓰는
   KVS 계열인지 확인. 버튼 삽입 위치는 `downloader.js`의 `placeButton` 후보 배열에
   해당 사이트의 액션 행 선택자를 추가.
+- 사이트가 HTML에 직접 심는 오버레이/공지 팝업 (외부 요청이 없어 DNR로 못 막는
+  것): `cleaner.js`의 `SITE_SELECTORS`에 도메인 → 선택자 항목 추가.
 
 ## 검증/문법 체크
 
@@ -104,4 +114,8 @@ node --check popup-guard.js && node --check downloader.js && node --check cleane
 - nswpedia.com: 광고 도메인 실측 후 id:7 화이트리스트 추가 (v2.3.0).
   다운로드 링크는 top-level 네비게이션이라 DNR 규칙(resourceTypes에 main_frame
   없음)에 영향받지 않음.
-- version 2.3.0.
+- s23.watchfreejavonline.co: 기존 id:6이 서브도메인까지 커버함을 확인.
+  추가 실측 광고/트래커 도메인을 id:1에 등록, 자체 삽입 텔레그램 팝업은
+  cleaner.js SITE_SELECTORS로 제거 검증 완료 (v2.4.0). 영상은 여기도
+  xxembed.com 임베드라 재생 경로 보존.
+- version 2.4.0.

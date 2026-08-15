@@ -2,7 +2,7 @@
 // 모든 사이트에서 페이지 스크립트보다 먼저 MAIN world에서 실행됨
 (() => {
   // 알려진 광고 네트워크 도메인 패턴 (rules.json과 짝을 이룸)
-  const AD_HINTS = /(exoclick|exosrv|exdynsrv|magsrv|realsrv|pemsrv|tsyndicate|trafficstars|juicyads|jads\.co|adsjudo|trafficjunky|adtng|adsterra|highperformanceformat|profitablecpmrate|effectiveratecpm|highcpmgate|popads\.net|popcash|popmyads|popunder|propeller(ads|click)|onclicka|hilltopads|clickadu|clickadilla|adnium|plugrush|trafficfactory|eroadvertising|ero-advertising|adxpansion|ad-maven|javbucks|coverdistilltile|qfanakacp|alfalfaemployeeresource|aboundadmirermyself|portalfluently|vivodemisrentas|illinformed-summer|diagramjawlineunhappy|normal-place\.com|thekav\.co|whitetrafsa|satisfactorilybewitchgreatness|diapsidbuchloe|lib-net\.dev|swordermislike|mulmhitch|doubleclick|googlesyndication)/i;
+  const AD_HINTS = /(exoclick|exosrv|exdynsrv|magsrv|realsrv|pemsrv|tsyndicate|trafficstars|juicyads|jads\.co|adsjudo|trafficjunky|adtng|adsterra|highperformanceformat|profitablecpmrate|effectiveratecpm|highcpmgate|popads\.net|popcash|popmyads|popunder|propeller(ads|click)|onclicka|hilltopads|clickadu|clickadilla|adnium|plugrush|trafficfactory|eroadvertising|ero-advertising|adxpansion|ad-maven|javbucks|coverdistilltile|qfanakacp|alfalfaemployeeresource|aboundadmirermyself|portalfluently|vivodemisrentas|illinformed-summer|diagramjawlineunhappy|normal-place\.com|thekav\.co|whitetrafsa|satisfactorilybewitchgreatness|diapsidbuchloe|lib-net\.dev|swordermislike|mulmhitch|agonizingrest|dtscout|dtscdn|mrktmtrcs|crwdcntrl|histats|rmhfrtnd|doubleclick|googlesyndication)/i;
 
   // 광고가 심한 사이트: 처음부터 엄격 모드 (같은 사이트 팝업 외 전부 차단)
   // 광고 도메인을 계속 바꾸는 사이트는 여기에 추가
