@@ -6,7 +6,15 @@
 
   // 광고가 심한 사이트: 처음부터 엄격 모드 (같은 사이트 팝업 외 전부 차단)
   // 광고 도메인을 계속 바꾸는 사이트는 여기에 추가
-  const STRICT_POPUP_HOSTS = ["kissjav.li", "kissjav.com", "watchfreejavonline.co", "xxembed.com", "nswpedia.com"];
+  const STRICT_POPUP_HOSTS = [
+    "kissjav.li",
+    "kissjav.com",
+    "watchfreejavonline.co",
+    "xxembed.com",
+    "xxxbed.cyou",
+    "guccihide.store",
+    "nswpedia.com"
+  ];
 
   // 자체 우클릭 메뉴를 정상적으로 쓰는 서비스 — 우클릭 복원을 적용하지 않음
   // (필요하면 여기에 도메인 추가)

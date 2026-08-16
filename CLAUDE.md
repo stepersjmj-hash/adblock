@@ -10,7 +10,7 @@
 | `manifest.json` | — | MV3 매니페스트. content_scripts 3개 등록, DNR 규칙 연결 |
 | `rules.json` | declarativeNetRequest | 네트워크 차단 규칙 (도메인 목록 + 정규식 + 화이트리스트) |
 | `popup-guard.js` | MAIN / document_start | 팝업·팝언더 차단 + 우클릭/복사 차단 해제 |
-| `downloader.js` | MAIN / document_idle | 영상 재생 페이지에 다운로드 버튼 삽입 |
+| `downloader.js` | MAIN / document_idle / all_frames | 영상 재생 페이지에 다운로드 버튼 삽입 |
 | `cleaner.js` | isolated / document_end | 광고 DOM 요소·오버레이 실시간 제거 (MutationObserver) |
 | `hide.css` | — | 광고 컨테이너 즉시 숨김 (cleaner.js 보조) |
 | `_metadata/…/_ruleset1` | — | 크롬이 rules.json으로 자동 생성하는 인덱스 (직접 편집 X) |
@@ -91,10 +91,13 @@
   해당 사이트의 액션 행 선택자를 추가.
 - 사이트가 HTML에 직접 심는 오버레이/공지 팝업 (외부 요청이 없어 DNR로 못 막는
   것): `cleaner.js`의 `SITE_SELECTORS`에 도메인 → 선택자 항목 추가.
-- mp4 없이 HLS(m3u8) 스트리밍만 주는 임베드 호스트 (xxembed 등):
+- mp4 없이 HLS(m3u8) 스트리밍만 주는 임베드 호스트 (xxembed, guccihide 등):
   `downloader.js`의 `HLS_HOSTS`에 도메인 추가. jwplayer 소스에서 m3u8을 얻어
   최고 화질 variant의 세그먼트를 fetch로 전부 받아(플레이어와 같은 경로라
   CORS 허용됨) 하나의 .ts로 합쳐 저장. AES-128 암호화 스트림은 미지원(에러 표시).
+  호스트를 계속 바꾸므로 목록에 없어도 URL이 `/embed/…` `/embed-…` `/e/…`
+  형태면 자동 인정(`isEmbedLikePage`) — jwplayer HLS 소스가 실제로 있을 때만
+  버튼이 뜨므로 일반 사이트엔 영향 없음.
 
 ## 검증/문법 체크
 
@@ -130,4 +133,17 @@ node --check popup-guard.js && node --check downloader.js && node --check cleane
   variant(예: 2.4Mbps) → 세그먼트 69개, CORS 허용 확인, 부분 수신 검증 완료.
   주의: 임베드 URL을 주소창에 직접 열면 리퍼러 없음 → "Embeds disabled".
   반드시 사이트의 다운로드 링크(새 탭)로 열어야 재생·다운로드 모두 동작.
-- version 2.5.0.
+- 임베드 호스트가 글마다 다름 (v2.6.0에서 대응). 실측 3종:
+  - `xxembed.com/embed-<id>.html` — 단일 영상, 절대 경로 m3u8.
+  - `xxxbed.cyou/p/<id>.html` — 플레이어 없음. `<select>`로 파트를 고르면
+    `guccihide.store` 임베드를 iframe에 띄우는 멀티파트 목록 페이지.
+    → iframe 안에 버튼을 넣어야 해서 downloader에 `all_frames: true` 적용.
+  - `guccihide.store/embed/<id>` — jwplayer HLS인데 소스가 **상대 경로**
+    (`/stream/…/master.m3u8`)라 `new URL(file, location.href)`로 절대화 필수.
+    세그먼트는 tiktokcdn.com 등 외부 CDN에 있지만 CORS 허용됨(실측).
+  멀티파트는 파트마다 리퍼러가 같아 파일명이 겹침 → iframe 안일 때는
+  임베드 ID를 파일명에 붙여 구분.
+- 영상이 아예 안 받아지는 경우: 임베드 페이지에 "File is no longer available
+  as it expired or has been deleted"가 뜨면 원본 파일이 삭제된 것. 확장으로
+  해결 불가 (예: chn25060111 글의 guccihide 임베드, 2026-08-16 확인).
+- version 2.6.0.

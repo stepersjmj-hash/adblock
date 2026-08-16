@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "MJ AdBlock",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "description": "광고 네트워크 요청 차단 + 팝업/팝언더 차단 + 광고 요소 제거 + 우클릭 차단 해제",
   "permissions": ["declarativeNetRequest"],
   "declarative_net_request": {
@@ -25,7 +25,8 @@
       "matches": ["<all_urls>"],
       "js": ["downloader.js"],
       "run_at": "document_idle",
-      "world": "MAIN"
+      "world": "MAIN",
+      "all_frames": true
     },
     {
       "matches": ["<all_urls>"],

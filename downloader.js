@@ -41,34 +41,56 @@
     a.remove();
   }
 
-  // ── HLS(m3u8) 다운로드: xxembed 등 임베드 전용 호스트 ──────────────
+  // ── HLS(m3u8) 다운로드: 임베드 전용 호스트 ─────────────────────────
   // 이런 호스트는 저장할 mp4 URL이 없고 HLS 스트리밍만 제공함(다운로드는 유료).
   // 플레이어가 쓰는 것과 같은 경로(fetch, CORS 허용됨)로 세그먼트를 전부 받아
   // 하나로 합쳐 저장한다. 결과물은 .ts 컨테이너 — VLC/팟플레이어에서 재생됨.
-  const HLS_HOSTS = ["xxembed.com"];
+  //
+  // 호스트가 수시로 바뀌므로(xxembed.com → xxxbed.cyou → guccihide.store)
+  // 목록 + "임베드 URL 형태" 휴리스틱을 함께 씀. 어느 쪽이든 jwplayer의 HLS
+  // 소스가 실제로 있어야만 버튼이 뜨므로 일반 사이트에 오작동하지 않음.
+  const HLS_HOSTS = ["xxembed.com", "guccihide.store"];
+
+  function isEmbedLikePage() {
+    if (
+      HLS_HOSTS.some(
+        (h) => location.hostname === h || location.hostname.endsWith("." + h)
+      )
+    ) {
+      return true;
+    }
+    // /embed-xxxx.html, /embed/xxxx, /e/xxxx 형태
+    return /\/(embed|e)[-/]/i.test(location.pathname);
+  }
 
   function getHlsInfo() {
-    const onHlsHost = HLS_HOSTS.some(
-      (h) => location.hostname === h || location.hostname.endsWith("." + h)
-    );
-    if (!onHlsHost) return null;
+    if (!isEmbedLikePage()) return null;
     try {
       const sources = window.jwplayer && jwplayer().getPlaylist()[0].sources;
       const hls = sources.find(
         (s) => /hls/i.test(s.type) || /\.m3u8/.test(s.file)
       );
       if (!hls) return null;
-      // 파일명: 원본 글 제목(리퍼러의 마지막 경로) > 임베드 ID > "video"
+      // 소스가 상대 경로("/stream/.../master.m3u8")인 호스트가 있어 절대화 필수
+      const url = new URL(hls.file, location.href).href;
+
+      // 파일명: 원본 글 슬러그(리퍼러) > 임베드 ID > "video"
       let name = "";
       try {
         name = decodeURIComponent(new URL(document.referrer).pathname)
           .replace(/\/+$/, "")
           .split("/")
-          .pop();
+          .pop()
+          .replace(/\.(html?|php)$/i, "");
       } catch (e) {}
-      if (!name) name = (location.pathname.match(/embed-(\w+)/) || [])[1] || "video";
+      const embedId =
+        (location.pathname.match(/(?:embed[-/]|\/e\/)([\w-]+)/i) || [])[1] || "";
+      if (!name) name = embedId || "video";
+      // 여러 파트를 iframe으로 돌려 보여주는 페이지(xxxbed 등)는 파트마다
+      // 리퍼러가 같아서 이름이 겹침 → 임베드 ID를 붙여 구분
+      if (window.top !== window.self && embedId) name += "_" + embedId;
       name = name.replace(/[\\/:*?"<>|]+/g, "_").slice(0, 120);
-      return { type: "hls", url: hls.file, filename: name + ".ts" };
+      return { type: "hls", url, filename: name + ".ts" };
     } catch (e) {
       return null; // 플레이어가 아직 준비 안 됨
     }
