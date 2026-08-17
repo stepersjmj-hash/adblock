@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --fg: #1c1c1e;
+        --sub: #6b6b70;
+        --bg: #ffffff;
+        --line: #e6e6ea;
+        --on: #e91e63;
+        --off: #c7c7cc;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --fg: #f2f2f5;
+          --sub: #9a9aa0;
+          --bg: #1f1f22;
+          --line: #34343a;
+          --off: #55555c;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        width: 260px;
+        padding: 14px 16px;
+        background: var(--bg);
+        color: var(--fg);
+        font: 13px/1.45 -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .name {
+        font-size: 14px;
+        font-weight: 700;
+      }
+      .state {
+        margin-top: 2px;
+        color: var(--sub);
+        font-size: 12px;
+      }
+      .grow {
+        flex: 1;
+        min-width: 0;
+      }
+      /* 토글 스위치 */
+      .switch {
+        flex: none;
+        position: relative;
+        width: 46px;
+        height: 27px;
+        padding: 0;
+        border: none;
+        border-radius: 999px;
+        background: var(--off);
+        cursor: pointer;
+        transition: background 0.16s ease;
+      }
+      .switch:focus-visible {
+        outline: 2px solid var(--on);
+        outline-offset: 2px;
+      }
+      .knob {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 21px;
+        height: 21px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        transition: transform 0.16s ease;
+      }
+      body[data-on="1"] .switch {
+        background: var(--on);
+      }
+      body[data-on="1"] .knob {
+        transform: translateX(19px);
+      }
+      .hint {
+        margin-top: 12px;
+        padding-top: 10px;
+        border-top: 1px solid var(--line);
+        color: var(--sub);
+        font-size: 11.5px;
+        min-height: 2.4em;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="row">
+      <div class="grow">
+        <div class="name">MJ AdBlock</div>
+        <div class="state" id="state">불러오는 중…</div>
+      </div>
+      <button
+        class="switch"
+        id="toggle"
+        type="button"
+        role="switch"
+        aria-checked="false"
+        aria-label="광고 차단 켜기/끄기"
+      >
+        <span class="knob"></span>
+      </button>
+    </div>
+    <div class="hint" id="hint">
+      광고 차단·팝업 차단·다운로드 버튼을 한 번에 켜고 끕니다.
+    </div>
+    <script src="popup.js"></script>
+  </body>
+</html>

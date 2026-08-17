@@ -7,7 +7,10 @@
 
 | 파일 | world / 시점 | 역할 |
 |------|--------------|------|
-| `manifest.json` | — | MV3 매니페스트. content_scripts 3개 등록, DNR 규칙 연결 |
+| `manifest.json` | — | MV3 매니페스트. action(팝업)·background·DNR 규칙 연결 |
+| `background.js` | service worker | on/off 상태 관리 — DNR 룰셋 토글 + 콘텐트 스크립트 동적 등록/해제 + 툴바 아이콘/배지 |
+| `popup.html` / `popup.js` | 확장 페이지 | 툴바 버튼 팝업. 토글 스위치로 `storage.local.enabled` 변경 |
+| `icons/` | — | 툴바 아이콘. `icon<size>.png`(켜짐, 분홍) / `icon<size>-off.png`(꺼짐, 회색) |
 | `rules.json` | declarativeNetRequest | 네트워크 차단 규칙 (도메인 목록 + 정규식 + 화이트리스트) |
 | `popup-guard.js` | MAIN / document_start | 팝업·팝언더 차단 + 우클릭/복사 차단 해제 |
 | `downloader.js` | MAIN / document_idle / all_frames | 영상 재생 페이지에 다운로드 버튼 삽입 |
@@ -45,6 +48,33 @@
   계열), node.lib-net.dev, swordermislike.qpon, gp.mulmhitch.cfd.
   `.qpon`/`.cfd` 같은 TLD를 쓰는 로테이션 광고망이라 개별 차단만으론 부족 →
   화이트리스트 필수. 구글 애널리틱스/클라우드플레어 통계도 같이 차단됨(무해).
+
+## on/off 스위치 (v2.7.0)
+
+툴바 버튼 → 토글 스위치. 상태는 `chrome.storage.local.enabled` (없으면 켜짐).
+`background.js`가 `storage.onChanged`를 보고 세 가지를 한꺼번에 전환:
+
+1. DNR 룰셋 — `updateEnabledRulesets({enable|disableRulesetIds: ["ad-domains"]})`
+2. 콘텐트 스크립트 — `scripting.register/unregisterContentScripts`
+3. 툴바 아이콘/배지 — 꺼짐이면 회색 아이콘 + "OFF" 배지
+
+**콘텐트 스크립트를 매니페스트에서 빼고 동적 등록으로 바꾼 이유**:
+popup-guard/downloader는 `world: "MAIN"`이라 `chrome.storage`를 못 읽는다
+(페이지의 window에서 돌기 때문). 즉 "일단 실행된 뒤 플래그 보고 중단"이
+불가능해서, 꺼짐 상태에서는 아예 등록을 해제하는 방식을 씀.
+→ 그래서 `manifest.json`에 `content_scripts` 항목이 없다. 스크립트를
+추가·수정할 때는 `background.js`의 `CONTENT_SCRIPTS` 배열을 고쳐야 한다.
+동적 등록에는 `host_permissions: ["<all_urls>"]`가 필요함(매니페스트 정적
+등록과 달리 호스트 권한이 요구됨).
+
+함정:
+- 등록은 `persistAcrossSessions: true`(기본값)라 브라우저를 재시작해도 남아있음.
+  같은 id를 두 번 등록하면 에러 → `getRegisteredContentScripts`로 확인 후
+  없는 것만 등록. onInstalled/onStartup/최초 실행이 겹칠 수 있어 `queue`
+  프라미스 체인으로 순차 처리함.
+- 서비스 워커가 깨어날 때마다 `sync()`를 호출해 상태를 맞춤(자가 복구).
+- DNR 룰셋 on/off는 새로고침 없이 즉시 반영되지만 콘텐트 스크립트는 다음
+  페이지 로드부터 적용됨 → 팝업이 토글 후 현재 탭을 자동 새로고침함.
 
 ## 핵심 함정 (실제로 겪은 것)
 
@@ -103,8 +133,11 @@
 
 ```bash
 python -c "import json; json.load(open('manifest.json',encoding='utf-8')); json.load(open('rules.json',encoding='utf-8')); print('JSON OK')"
-node --check popup-guard.js && node --check downloader.js && node --check cleaner.js
+node --check popup-guard.js && node --check downloader.js && node --check cleaner.js && node --check background.js && node --check popup.js
 ```
+
+아이콘을 다시 만들려면 (의존성 없이 순수 파이썬으로 PNG 생성):
+`_tools/make_icons.py` 실행 → `icons/`에 켜짐/꺼짐 8개 파일 생성.
 
 ## 로드/테스트
 

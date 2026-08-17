@@ -1,9 +1,29 @@
 {
   "manifest_version": 3,
   "name": "MJ AdBlock",
-  "version": "2.6.0",
-  "description": "광고 네트워크 요청 차단 + 팝업/팝언더 차단 + 광고 요소 제거 + 우클릭 차단 해제",
-  "permissions": ["declarativeNetRequest"],
+  "version": "2.7.0",
+  "description": "광고 네트워크 요청 차단 + 팝업/팝언더 차단 + 광고 요소 제거 + 우클릭 차단 해제 + 영상 다운로드 버튼",
+  "permissions": ["declarativeNetRequest", "scripting", "storage"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "MJ AdBlock",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "declarative_net_request": {
     "rule_resources": [
       {
@@ -12,27 +32,5 @@
         "path": "rules.json"
       }
     ]
-  },
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["popup-guard.js"],
-      "run_at": "document_start",
-      "world": "MAIN",
-      "all_frames": true
-    },
-    {
-      "matches": ["<all_urls>"],
-      "js": ["downloader.js"],
-      "run_at": "document_idle",
-      "world": "MAIN",
-      "all_frames": true
-    },
-    {
-      "matches": ["<all_urls>"],
-      "js": ["cleaner.js"],
-      "css": ["hide.css"],
-      "run_at": "document_end"
-    }
-  ]
+  }
 }
