@@ -8,7 +8,7 @@ import os
 import struct
 import zlib
 
-# 저장소 루트의 icons/ 에 바로 생성 (이 스크립트는 _tools/ 안에 있음)
+# 저장소 루트의 icons/ 에 바로 생성 (이 스크립트는 tools/ 안에 있음)
 OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "icons")
 
 ON = (233, 30, 99)     # #e91e63

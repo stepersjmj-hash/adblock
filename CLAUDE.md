@@ -137,7 +137,8 @@ node --check popup-guard.js && node --check downloader.js && node --check cleane
 ```
 
 아이콘을 다시 만들려면 (의존성 없이 순수 파이썬으로 PNG 생성):
-`_tools/make_icons.py` 실행 → `icons/`에 켜짐/꺼짐 8개 파일 생성.
+`tools/make_icons.py` 실행 → `icons/`에 켜짐/꺼짐 8개 파일 생성.
+(폴더명을 `_`로 시작하면 크롬이 확장 로드를 거부함 — `_metadata`만 예외)
 
 ## 로드/테스트
 
