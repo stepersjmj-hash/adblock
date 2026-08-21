@@ -33,8 +33,35 @@ const CONTENT_SCRIPTS = [
     css: ["hide.css"],
     runAt: "document_end",
     persistAcrossSessions: true
+  },
+  {
+    // EBS 전용. isolated world라서 chrome.runtime으로 백그라운드에 요청 가능
+    // (영상 CDN이 CORS를 막아 페이지에서 직접 받을 수 없기 때문)
+    id: "ebs-downloader",
+    matches: ["*://*.ebs.co.kr/*"],
+    js: ["ebs-downloader.js"],
+    runAt: "document_idle",
+    persistAcrossSessions: true
   }
 ];
+
+// ebs-downloader가 넘긴 주소를 브라우저 다운로드로 처리 (CORS 무관)
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (!msg || msg.type !== "mj-download") return;
+  // 확장 자신의 콘텐트 스크립트가 보낸 것만 받음
+  if (!sender || sender.id !== chrome.runtime.id) return;
+  chrome.downloads.download(
+    { url: msg.url, filename: msg.filename, saveAs: false },
+    (id) => {
+      if (chrome.runtime.lastError) {
+        sendResponse({ ok: false, error: chrome.runtime.lastError.message });
+      } else {
+        sendResponse({ ok: true, id });
+      }
+    }
+  );
+  return true; // 비동기 응답
+});
 
 async function readEnabled() {
   const { enabled } = await chrome.storage.local.get({ enabled: true });

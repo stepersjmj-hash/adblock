@@ -14,6 +14,7 @@
 | `rules.json` | declarativeNetRequest | 네트워크 차단 규칙 (도메인 목록 + 정규식 + 화이트리스트) |
 | `popup-guard.js` | MAIN / document_start | 팝업·팝언더 차단 + 우클릭/복사 차단 해제 |
 | `downloader.js` | MAIN / document_idle / all_frames | 영상 재생 페이지에 다운로드 버튼 삽입 |
+| `ebs-downloader.js` | isolated / document_idle / ebs.co.kr | EBS VOD 저장 버튼 (chrome.downloads 경유) |
 | `cleaner.js` | isolated / document_end | 광고 DOM 요소·오버레이 실시간 제거 (MutationObserver) |
 | `hide.css` | — | 광고 컨테이너 즉시 숨김 (cleaner.js 보조) |
 | `_metadata/…/_ruleset1` | — | 크롬이 rules.json으로 자동 생성하는 인덱스 (직접 편집 X) |
@@ -76,6 +77,29 @@ popup-guard/downloader는 `world: "MAIN"`이라 `chrome.storage`를 못 읽는�
 - DNR 룰셋 on/off는 새로고침 없이 즉시 반영되지만 콘텐트 스크립트는 다음
   페이지 로드부터 적용됨 → 팝업이 토글 후 현재 탭을 자동 새로고침함.
 
+## EBS VOD 저장 (v2.8.0)
+
+`anikids.ebs.co.kr` 등 EBS VOD 재생 페이지(`/vodCommon/show?...`)에
+"⬇ 영상 저장" 플로팅 버튼을 띄운다.
+
+**다른 사이트와 방식이 다른 이유** — 영상 CDN(`wstrotu.ebs.co.kr`)이 CORS
+헤더를 주지 않아서 페이지 안에서 `fetch`가 실패한다(`Failed to fetch`).
+파일 호스트가 페이지와 다른 도메인이라 `<a download>`의 download 속성도
+무시됨. → 주소만 백그라운드로 넘겨 `chrome.downloads.download()`가 브라우저
+차원에서 받게 함 (CORS와 무관하고 CloudFront 서명 주소도 그대로 유효).
+그래서 이 스크립트만 **isolated world**(chrome.runtime 필요)이고,
+매니페스트에 `downloads` 권한이 추가됨.
+
+- 화질: 페이지 HTML에 `500k/1m/2m/5m` 서명 주소가 전부 들어있음. 플레이어는
+  보통 2m로 재생하지만 버튼은 **5m(최고화질)** 을 고름. 서명이 경로마다
+  따로라서 URL의 화질 부분만 바꿔치기하면 서명이 깨짐 — 반드시 페이지에
+  들어있는 주소를 그대로 써야 함.
+- 파일명: `.mpv-title-layout` 요소 (예: "한글용사 아이야 1화 아이야.mp4").
+- **구독 콘텐츠는 못 받음** — 유료 구독이 필요한 편(페파 피그, 고고다이노 등)은
+  로그인해도 서버가 `end=60`이 붙은 60초 맛보기만 내려준다. 받아도 60초짜리라
+  버튼이 `end=` 파라미터를 감지하면 저장을 막고 안내만 띄움.
+  EBS 자체 제작물(한글용사 아이야 등)은 로그인만으로 전체가 재생됨(실측 13:07).
+
 ## 핵심 함정 (실제로 겪은 것)
 
 1. **광고 도메인이 매 접속마다 바뀜** — kissjav의 광고는 `coverdistilltile.com`,
@@ -133,7 +157,7 @@ popup-guard/downloader는 `world: "MAIN"`이라 `chrome.storage`를 못 읽는�
 
 ```bash
 python -c "import json; json.load(open('manifest.json',encoding='utf-8')); json.load(open('rules.json',encoding='utf-8')); print('JSON OK')"
-node --check popup-guard.js && node --check downloader.js && node --check cleaner.js && node --check background.js && node --check popup.js
+node --check popup-guard.js && node --check downloader.js && node --check cleaner.js && node --check background.js && node --check popup.js && node --check ebs-downloader.js
 ```
 
 아이콘을 다시 만들려면 (의존성 없이 순수 파이썬으로 PNG 생성):
