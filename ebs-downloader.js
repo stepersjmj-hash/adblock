@@ -123,16 +123,24 @@
     return btn;
   }
 
+  // 전체화면일 때는 전체화면 요소 안에 넣어야 보인다.
+  // (전체화면 모드에서는 그 요소와 자손만 렌더링되므로 body에 붙은 fixed 버튼은
+  //  화면에 나오지 않음)
+  function mount(btn) {
+    const host = document.fullscreenElement || document.body || document.documentElement;
+    if (btn.parentElement !== host) host.appendChild(btn);
+  }
+
   function ensureButton() {
     // 플레이어가 있는 페이지에서만
     if (!document.querySelector("video")) return;
     const src = pickSource();
     if (!src) return;
     const existing = document.getElementById(BTN_ID);
-    if (existing) return;
-    (document.body || document.documentElement).appendChild(createButton(src));
+    mount(existing || createButton(src));
   }
 
   ensureButton();
   setInterval(ensureButton, 1000); // 플레이어가 늦게 뜨거나 편이 바뀌는 경우 대응
+  document.addEventListener("fullscreenchange", ensureButton);
 })();
