@@ -14,7 +14,7 @@
 | `rules.json` | declarativeNetRequest | 네트워크 차단 규칙 (도메인 목록 + 정규식 + 화이트리스트) |
 | `popup-guard.js` | MAIN / document_start | 팝업·팝언더 차단 + 우클릭/복사 차단 해제 |
 | `downloader.js` | MAIN / document_idle / all_frames | 영상 재생 페이지에 다운로드 버튼 삽입 |
-| `ebs-downloader.js` | isolated / document_idle / ebs.co.kr | EBS VOD 저장 버튼 (chrome.downloads 경유) |
+| `ebs-downloader.js` | isolated / document_idle / all_frames / ebs.co.kr | EBS VOD 저장 버튼 (chrome.downloads 경유) |
 | `cleaner.js` | isolated / document_end | 광고 DOM 요소·오버레이 실시간 제거 (MutationObserver) |
 | `hide.css` | — | 광고 컨테이너 즉시 숨김 (cleaner.js 보조) |
 | `_metadata/…/_ruleset1` | — | 크롬이 rules.json으로 자동 생성하는 인덱스 (직접 편집 X) |
@@ -73,6 +73,13 @@ popup-guard/downloader는 `world: "MAIN"`이라 `chrome.storage`를 못 읽는�
   같은 id를 두 번 등록하면 에러 → `getRegisteredContentScripts`로 확인 후
   없는 것만 등록. onInstalled/onStartup/최초 실행이 겹칠 수 있어 `queue`
   프라미스 체인으로 순차 처리함.
+- **정의를 고쳐도 반영이 안 되는 함정** — 위 "없는 것만 등록" 때문에,
+  `CONTENT_SCRIPTS`의 `allFrames`/`matches` 등을 수정해도 같은 id가 이미
+  등록돼 있으면 그냥 넘어가서 옛 설정이 계속 남는다. 확장을 새로고침해도
+  마찬가지. → `onInstalled`에서 `resetAndSyncNow()`로 전부 해제 후 재등록함.
+- `queue` 안에서 도는 함수가 다시 `applyState()`를 부르면 자기 뒤에 붙은
+  작업을 기다리게 되어 **교착**이 생긴다. 그래서 큐를 거치지 않는
+  `applyStateNow()`를 따로 두고 리셋 경로는 이쪽을 쓴다.
 - 서비스 워커가 깨어날 때마다 `sync()`를 호출해 상태를 맞춤(자가 복구).
 - DNR 룰셋 on/off는 새로고침 없이 즉시 반영되지만 콘텐트 스크립트는 다음
   페이지 로드부터 적용됨 → 팝업이 토글 후 현재 탭을 자동 새로고침함.
@@ -95,6 +102,13 @@ popup-guard/downloader는 `world: "MAIN"`이라 `chrome.storage`를 못 읽는�
   따로라서 URL의 화질 부분만 바꿔치기하면 서명이 깨짐 — 반드시 페이지에
   들어있는 주소를 그대로 써야 함.
 - 파일명: `.mpv-title-layout` 요소 (예: "한글용사 아이야 1화 아이야.mp4").
+- **플레이어가 iframe 안에 뜬다** — 프로그램 상세 페이지
+  (`/anikids/program/show/<id>`)에서 "바로보기"를 누르면 페이지 이동이 아니라
+  같은 탭에 `/vodCommon/show` iframe이 덮인다. 그래서 `allFrames: true`가
+  필수. (주소창에 `/vodCommon/show?...`를 직접 열면 top frame이라 없어도 됨 —
+  이것만 보고 되는 줄 알았다가 놓쳤던 부분)
+- 전체화면일 때는 fullscreen 요소와 그 자손만 렌더링되므로 body에 붙인
+  fixed 버튼이 안 보임 → `fullscreenchange`마다 버튼을 옮겨 붙임.
 - **구독 콘텐츠는 못 받음** — 유료 구독이 필요한 편(페파 피그, 고고다이노 등)은
   로그인해도 서버가 `end=60`이 붙은 60초 맛보기만 내려준다. 받아도 60초짜리라
   버튼이 `end=` 파라미터를 감지하면 저장을 막고 안내만 띄움.

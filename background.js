@@ -41,6 +41,9 @@ const CONTENT_SCRIPTS = [
     matches: ["*://*.ebs.co.kr/*"],
     js: ["ebs-downloader.js"],
     runAt: "document_idle",
+    // 프로그램 상세 페이지에서 "바로보기"를 누르면 플레이어가 같은 탭의
+    // iframe(/vodCommon/show)으로 뜬다 → iframe 안까지 주입해야 버튼이 보임
+    allFrames: true,
     persistAcrossSessions: true
   }
 ];
@@ -117,11 +120,14 @@ function syncButton(enabled) {
 // (동시에 등록하면 같은 id를 두 번 등록해 에러가 남)
 let queue = Promise.resolve();
 
+// 큐 안에서 도는 실제 작업 (여기서 다시 큐에 넣으면 교착이 생기므로 주의)
+async function applyStateNow(enabled) {
+  await Promise.all([syncRuleset(enabled), syncScripts(enabled)]);
+  syncButton(enabled);
+}
+
 function applyState(enabled) {
-  const run = async () => {
-    await Promise.all([syncRuleset(enabled), syncScripts(enabled)]);
-    syncButton(enabled);
-  };
+  const run = () => applyStateNow(enabled);
   queue = queue.then(run, run);
   return queue;
 }
@@ -130,7 +136,23 @@ async function sync() {
   return applyState(await readEnabled());
 }
 
-chrome.runtime.onInstalled.addListener(sync);
+// 설치·업데이트(개발자 모드 새로고침 포함) 때는 등록을 싹 지우고 다시 만든다.
+// 동적 등록은 브라우저에 저장돼 있어서, CONTENT_SCRIPTS 정의(allFrames 등)를
+// 고쳐도 같은 id가 이미 등록돼 있으면 syncScripts가 건너뛰어 옛 설정이 남는다.
+async function resetAndSyncNow() {
+  try {
+    const registered = await chrome.scripting.getRegisteredContentScripts();
+    const ids = registered.map((s) => s.id);
+    if (ids.length) await chrome.scripting.unregisterContentScripts({ ids });
+  } catch (e) {
+    console.warn("[MJ AdBlock] 기존 등록 해제 실패:", e);
+  }
+  await applyStateNow(await readEnabled());
+}
+
+chrome.runtime.onInstalled.addListener(() => {
+  queue = queue.then(resetAndSyncNow, resetAndSyncNow);
+});
 chrome.runtime.onStartup.addListener(sync);
 
 chrome.storage.onChanged.addListener((changes, area) => {
