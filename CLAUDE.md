@@ -49,6 +49,20 @@
   계열), node.lib-net.dev, swordermislike.qpon, gp.mulmhitch.cfd.
   `.qpon`/`.cfd` 같은 TLD를 쓰는 로테이션 광고망이라 개별 차단만으론 부족 →
   화이트리스트 필수. 구글 애널리틱스/클라우드플레어 통계도 같이 차단됨(무해).
+- bestjavporn.com 전용 강화 (rules.json id:8, v2.9.0): 같은 화이트리스트 방식.
+  실측 광고 도메인: alaphoid.com(주 로더 — script/pixel/XHR 전부), tapioni.com
+  (adgpt.js), nomandswitch.cc, nresystems.com(픽셀), flushpersist.com(픽셀),
+  javhd-trk.com(배너 클릭 타겟). 여기에 기존 차단 대상인 portalfluently,
+  vivodemisrentas, whitetrafsa(`go.whitetrafsa.com/smartpop` = 팝언더),
+  magsrv(ExoClick)도 같이 뜸.
+  **허용 목록 주의** — 영상이 여러 CDN에서 오고 서브도메인이 랜덤임:
+  `z6v2p9a8.bkcdn.net`(현재 재생), `n19s.1024cdn.sx`, `video.pornfhd.com`.
+  `pornfhd.com`은 썸네일(pics.)·CSS(cdn.)도 겸하므로 반드시 허용.
+  `raw.githubusercontent.com`은 qtranslate 언어전환 국기 이미지라 정상 기능.
+  단 `cdn.pornfhd.com/files/banner_300x250.html`은 사이트 자체 CDN에서 서빙되는
+  광고 배너라 화이트리스트로 못 막음 → id:9 정규식 규칙으로 별도 차단.
+  theporndude.com 배너는 stylesheet라 화이트리스트(script/frame만) 대상이 아님
+  → AD_HINTS에 넣어 cleaner.js가 DOM에서 제거.
 
 ## on/off 스위치 (v2.7.0)
 
@@ -218,4 +232,10 @@ node --check popup-guard.js && node --check downloader.js && node --check cleane
 - 영상이 아예 안 받아지는 경우: 임베드 페이지에 "File is no longer available
   as it expired or has been deleted"가 뜨면 원본 파일이 삭제된 것. 확장으로
   해결 불가 (예: chn25060111 글의 guccihide 임베드, 2026-08-16 확인).
-- version 2.6.0.
+- bestjavporn.com: 광고 도메인 실측 후 id:8 화이트리스트 + id:9 배너 정규식
+  추가 (v2.9.0). 브라우저에서 실제 로드된 리소스에 규칙을 대입해 검증함 —
+  차단: alaphoid/tapioni/nomandswitch/portalfluently/vivodemisrentas/magsrv
+  스크립트 + whitetrafsa smartpop iframe(팝언더), 통과: 영상 호스트
+  `z6v2p9a8.bkcdn.net`·`video.pornfhd.com`, 썸네일, jQuery, 폰트.
+  구글 애널리틱스·클라우드플레어 통계도 같이 차단됨(무해).
+- version 2.9.0.

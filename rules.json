@@ -67,6 +67,12 @@
         "crwdcntrl.net",
         "histats.com",
         "rmhfrtnd.com",
+        "alaphoid.com",
+        "nomandswitch.cc",
+        "tapioni.com",
+        "flushpersist.com",
+        "nresystems.com",
+        "javhd-trk.com",
         "googlesyndication.com",
         "doubleclick.net"
       ],
@@ -210,6 +216,41 @@
         "websocket",
         "other"
       ]
+    }
+  },
+  {
+    "id": 8,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "initiatorDomains": ["bestjavporn.com"],
+      "excludedRequestDomains": [
+        "bestjavporn.com",
+        "pornfhd.com",
+        "bkcdn.net",
+        "1024cdn.sx",
+        "cdnjs.cloudflare.com",
+        "googleapis.com",
+        "gstatic.com",
+        "githubusercontent.com"
+      ],
+      "resourceTypes": [
+        "script",
+        "sub_frame",
+        "xmlhttprequest",
+        "ping",
+        "websocket",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": 9,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "regexFilter": "/files/banner_\\d+x\\d+\\.html",
+      "resourceTypes": ["sub_frame", "xmlhttprequest", "other"]
     }
   }
 ]
