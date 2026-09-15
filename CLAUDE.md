@@ -63,6 +63,17 @@
   광고 배너라 화이트리스트로 못 막음 → id:9 정규식 규칙으로 별도 차단.
   theporndude.com 배너는 stylesheet라 화이트리스트(script/frame만) 대상이 아님
   → AD_HINTS에 넣어 cleaner.js가 DOM에서 제거.
+  **재생 버튼 클릭 납치** (v2.9.1에서 대응): 플레이 버튼을 누르면 재생 대신
+  광고로 튄다. 확장 없는 브라우저에서 실측한 연쇄:
+  1클릭 → `tesorf.com` 팝언더, 2클릭 → `grabyourluck.com` 리다이렉트 →
+  `ko.stripchat.mov`로 페이지 자체가 이동. id:1에 전부 추가함.
+  주의: 기존 id:5는 `stripchat.com`만 막고 있어서 `.mov` 미러는 안 걸렸음.
+  `cdn.show-sb.com` / `cdn.bakestubborn.com`은 이름만 보면 영상 호스트 같지만
+  경로가 `/sb/notifications/utility/...`이고 alaphoid가 `pixel/sbls`로 추적하는
+  **알림 스팸 광고 위젯**이다 — 플레이어 아님. 화이트리스트로 막아도 무방.
+  영상 소스는 `data-mpu`(광고 슬롯 데이터, Mid Page Unit)가 아니라 런타임에
+  JS가 만들어 넣는다. 원본 HTML에는 `<video>`도 소스 URL도 없음(되는 편/안 되는
+  편 모두 동일) → 재생 실패는 편별 소스 조회 실패이지 확장 탓이 아님.
 
 ## on/off 스위치 (v2.7.0)
 
