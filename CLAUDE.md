@@ -49,20 +49,35 @@
   계열), node.lib-net.dev, swordermislike.qpon, gp.mulmhitch.cfd.
   `.qpon`/`.cfd` 같은 TLD를 쓰는 로테이션 광고망이라 개별 차단만으론 부족 →
   화이트리스트 필수. 구글 애널리틱스/클라우드플레어 통계도 같이 차단됨(무해).
-- bestjavporn.com 전용 강화 (rules.json id:8, v2.9.0): 같은 화이트리스트 방식.
+- bestjavporn.com: **화이트리스트 방식을 쓰면 안 되는 사이트** (v2.9.2에서 철회).
+  id:8 화이트리스트를 넣었더니 영상이 재생되지 않았다(확장 끄면 재생됨으로 확인).
+  플레이어를 만드는 코드가 사이트 자체 JS에 없고(navigation/main/cast.js 전부
+  소스 해석 로직 없음) 외부 스크립트가 런타임에 만들어 넣는 구조라, 외부
+  스크립트를 통으로 막으면 플레이어가 초기화되지 않는다.
+  → 도메인 개별 차단(id:1)만 사용. 아래 실측 도메인으로 광고는 충분히 제거됨.
+  **`bkcdn.net`은 사이트 영상 CDN이 아니라 ExoClick 자산 호스트다** —
+  `a.magsrv.com/ad-provider.js` 안에 `z6v2p9a8.bkcdn.net/images/close-icon.svg`로
+  하드코딩돼 있음. 그래서 재생 페이지에 뜨는 `<video src=...bkcdn...>`는
+  본편이 아니라 **광고 영상**이다. 이걸 본편으로 착각해 "재생 잘 된다"고
+  오판했었음 — 다음에 검증할 때 주의.
+  조사 함정: 이 사이트는 재생 버튼 클릭이 광고로 납치돼(아래) 확장 없는
+  브라우저에서는 재생 상태에 도달하기 어렵다. 샌드박스 iframe
+  (`allow-top-navigation` 없이)으로 상위 창 납치는 막을 수 있으나 그래도
+  본편 재생은 재현하지 못했음.
+- bestjavporn.com 광고 실측 (v2.9.0):
   실측 광고 도메인: alaphoid.com(주 로더 — script/pixel/XHR 전부), tapioni.com
   (adgpt.js), nomandswitch.cc, nresystems.com(픽셀), flushpersist.com(픽셀),
   javhd-trk.com(배너 클릭 타겟). 여기에 기존 차단 대상인 portalfluently,
   vivodemisrentas, whitetrafsa(`go.whitetrafsa.com/smartpop` = 팝언더),
   magsrv(ExoClick)도 같이 뜸.
-  **허용 목록 주의** — 영상이 여러 CDN에서 오고 서브도메인이 랜덤임:
-  `z6v2p9a8.bkcdn.net`(현재 재생), `n19s.1024cdn.sx`, `video.pornfhd.com`.
-  `pornfhd.com`은 썸네일(pics.)·CSS(cdn.)도 겸하므로 반드시 허용.
-  `raw.githubusercontent.com`은 qtranslate 언어전환 국기 이미지라 정상 기능.
-  단 `cdn.pornfhd.com/files/banner_300x250.html`은 사이트 자체 CDN에서 서빙되는
-  광고 배너라 화이트리스트로 못 막음 → id:9 정규식 규칙으로 별도 차단.
-  theporndude.com 배너는 stylesheet라 화이트리스트(script/frame만) 대상이 아님
-  → AD_HINTS에 넣어 cleaner.js가 DOM에서 제거.
+  사이트 정상 리소스(건드리면 안 됨): `pornfhd.com`(썸네일 pics. / CSS cdn. /
+  영상 video.), `n19s.1024cdn.sx`(관련영상 mp4), jQuery·폰트 CDN,
+  `raw.githubusercontent.com`(qtranslate 언어전환 국기 이미지).
+  `cdn.pornfhd.com/files/banner_300x250.html`은 사이트 자체 CDN에서 서빙되는
+  광고 배너라 도메인 차단으로 못 막음 → id:9 정규식 규칙으로 별도 차단.
+  theporndude.com 배너는 stylesheet로 들어와 도메인 차단 대상이 아님
+  → AD_HINTS에 넣어 cleaner.js가 DOM에서 제거 (메뉴 `<li>` 3개만 지우고
+  플레이어는 안 건드리는 것 확인함).
   **재생 버튼 클릭 납치** (v2.9.1에서 대응): 플레이 버튼을 누르면 재생 대신
   광고로 튄다. 확장 없는 브라우저에서 실측한 연쇄:
   1클릭 → `tesorf.com` 팝언더, 2클릭 → `grabyourluck.com` 리다이렉트 →
