@@ -105,6 +105,16 @@
   **프리롤 광고**: 재생 버튼을 누르면 `tsvideo.saawsedge.com` 영상이
   플레이어 크기(970x560)로 덮어씌워진다(`.ts-im-video-wrapper` = tsyndicate).
   saawsedge.com 차단으로 제거됨.
+  **네트워크 차단만으로 안 지워지는 것들** (v2.10.1에서 DOM 제거로 처리):
+  - `section.tray`("Free Cams Sex") — 캠 광고 줄. 썸네일을 **sextb.net 자체
+    도메인**에서 서빙해서 도메인 차단 불가. 정상 콘텐츠("Related JAV Movies")도
+    같은 `section.tray` 클래스라 `:has(.tray-item-cams)`로 캠 항목이 든 것만 지목.
+  - `ins.adsbyexoclick` / `ins[class^=eas]`(ExoClick 슬롯), `.ts-im-container`
+    (tsyndicate) — 스크립트를 막아도 빈 컨테이너가 남아 자리를 차지함.
+    범용이라 전역 AD_SELECTORS + hide.css 에 넣음.
+  **못 지우는 것**: 플레이어 안의 "UPGRADE V.I.P MEMBER NOW" 오버레이는
+  `turboplays.click` iframe 내부(교차 출처)라 cleaner가 접근 못 함.
+  cleaner는 top frame 전용이고, allFrames를 켜도 선택자를 알 수 없어 소용없음.
 
 ## on/off 스위치 (v2.7.0)
 

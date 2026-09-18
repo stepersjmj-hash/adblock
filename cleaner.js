@@ -10,14 +10,21 @@
     "[id^='ad_']", "[id^='ads_']",
     "[class*='banner-ad']", "[class*='ad-zone']",
     ".bottom-adv", ".top-adv", ".side-adv", ".adv-box",
-    "ins.adsbygoogle"
+    "ins.adsbygoogle",
+    // 광고 스크립트를 막으면 빈 컨테이너만 남아 자리를 차지함 → 같이 제거
+    "ins.adsbyexoclick", "ins[class^='eas']", // ExoClick 슬롯
+    ".ts-im-container" // tsyndicate 인이미지/영상 광고 박스
   ].join(",");
 
   // 사이트가 HTML에 직접 심는 광고/공지 오버레이 — 네트워크 차단(DNR)으론 못 막아서
   // DOM에서 제거. 키: 도메인(서브도메인 포함 매칭), 값: 제거할 선택자
   const SITE_SELECTORS = {
     // 접속 주소 안내 텔레그램 팝업 (#tg-popup) — 매 방문마다 화면 전체를 덮음
-    "watchfreejavonline.co": "#tg-popup, .tg-overlay"
+    "watchfreejavonline.co": "#tg-popup, .tg-overlay",
+    // 캠 사이트 광고 줄("Free Cams Sex"). 썸네일을 sextb.net 자체 도메인에서
+    // 서빙해서 네트워크 차단으로는 못 막음. 같은 `section.tray` 클래스를 정상
+    // 콘텐츠(Related JAV Movies)도 쓰므로 :has() 로 캠 항목이 든 것만 지목.
+    "sextb.net": "section.tray:has(.tray-item-cams), .tray-item-cams"
   };
   const siteSelector = Object.entries(SITE_SELECTORS)
     .filter(

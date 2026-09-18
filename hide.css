@@ -23,7 +23,10 @@ iframe[src*="magsrv"],
 iframe[src*="tsyndicate"],
 iframe[src*="juicyads"],
 iframe[src*="adsterra"],
-iframe[src*="hilltopads"] {
+iframe[src*="hilltopads"],
+ins.adsbyexoclick,
+ins[class^="eas"],
+.ts-im-container {
   display: none !important;
   visibility: hidden !important;
 }
