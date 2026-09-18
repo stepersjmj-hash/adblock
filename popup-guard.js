@@ -76,7 +76,7 @@
 
   const realOpen = window.open.bind(window);
 
-  window.open = function (url, ...rest) {
+  function guardedOpen(url, ...rest) {
     try {
       const u = new URL(url || "", location.href);
       if (AD_HINTS.test(u.href)) {
@@ -90,7 +90,9 @@
     } catch (e) {
       return fakeWindow();
     }
-  };
+  }
+
+  window.open = guardedOpen;
 
   // 광고 스크립트가 덮어쓴 window.open을 되돌리지 못하게 고정
   try {
@@ -99,6 +101,34 @@
       writable: false,
       configurable: false
     });
+  } catch (e) {}
+
+  // 우회 차단: 팝언더 스크립트가 흔히 쓰는 수법 — 빈 iframe을 만든 뒤
+  // 그 안의 "손대지 않은" window.open 을 꺼내 호출한다. 위에서 고정한 건
+  // 이 프레임의 window.open 뿐이라 그대로 뚫린다.
+  // → iframe의 contentWindow를 꺼낼 때마다 그 창의 open도 갈아끼운다.
+  try {
+    const desc = Object.getOwnPropertyDescriptor(
+      HTMLIFrameElement.prototype,
+      "contentWindow"
+    );
+    if (desc && desc.get) {
+      Object.defineProperty(HTMLIFrameElement.prototype, "contentWindow", {
+        configurable: true,
+        get() {
+          const w = desc.get.call(this);
+          try {
+            // 교차 출처면 접근 자체가 막혀 예외 → 무시 (그쪽은 자기 프레임에
+            // 주입된 popup-guard가 담당)
+            if (w && !w.__mjOpenPatched) {
+              w.open = guardedOpen;
+              w.__mjOpenPatched = true;
+            }
+          } catch (e) {}
+          return w;
+        }
+      });
+    }
   } catch (e) {}
 
   // 광고 도메인으로 향하는 <a target="_blank"> 하이재킹 차단
@@ -111,7 +141,18 @@
         strictMode = true;
         ev.preventDefault();
         ev.stopImmediatePropagation();
+        return;
       }
+      // 엄격 모드에서는 새 창으로 뜨는 외부 링크도 전부 차단.
+      // window.open 대신 합성한 <a target="_blank"> 클릭으로 새 창을 여는
+      // 팝언더가 있어서 필요함 (엄격 대상 사이트 한정이라 일반 사이트 영향 없음)
+      if (!strictMode || a.target !== "_blank") return;
+      try {
+        if (new URL(a.href, location.href).origin !== location.origin) {
+          ev.preventDefault();
+          ev.stopImmediatePropagation();
+        }
+      } catch (e) {}
     },
     true
   );

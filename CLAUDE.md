@@ -121,6 +121,17 @@
   (iframe의 `document.referrer` = 임베드한 페이지). 리퍼러가 비는 경우를 대비해
   `turboplays.click` 자체도 목록에 추가. 앞으로 임베드 플레이어에서 팝언더가
   뜨면 이 상속 로직으로 대부분 자동 커버됨.
+  위 상속만으로는 **안 막혔음** — 팝언더가 `window.open`을 직접 안 부르는
+  우회 수법을 씀. v2.10.3에서 두 가지 보강:
+  1. **iframe의 깨끗한 open 꺼내 쓰기** — 빈 iframe을 만든 뒤
+     `iframe.contentWindow.open(...)`을 호출하면, 우리가 고정해둔 건 그 프레임의
+     `window.open`뿐이라 그대로 뚫린다. → `HTMLIFrameElement.prototype`의
+     `contentWindow` getter를 감싸서, 꺼내질 때마다 그 창의 `open`도 갈아끼움.
+     (교차 출처는 접근 시 예외 → 무시. 그쪽은 자기 프레임의 popup-guard 담당)
+  2. **합성한 `<a target="_blank">` 클릭** — 엄격 모드에서는 외부 도메인으로
+     새 창을 여는 앵커 클릭도 취소 (엄격 대상 사이트 한정).
+  검증: 우회 재현 코드가 차단되고, 교차 출처 iframe 접근이 예외를 안 내며,
+  정상 iframe도 그대로 동작함을 브라우저에서 확인.
   **못 지우는 것**: 플레이어 안의 "UPGRADE V.I.P MEMBER NOW" 오버레이는
   `turboplays.click` iframe 내부(교차 출처)라 cleaner가 접근 못 함.
   cleaner는 top frame 전용이고, allFrames를 켜도 선택자를 알 수 없어 소용없음.
