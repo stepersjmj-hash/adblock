@@ -15,7 +15,8 @@
     "guccihide.store",
     "nswpedia.com",
     "bestjavporn.com",
-    "sextb.net"
+    "sextb.net",
+    "turboplays.click"
   ];
 
   // 자체 우클릭 메뉴를 정상적으로 쓰는 서비스 — 우클릭 복원을 적용하지 않음
@@ -45,9 +46,23 @@
   // 로그인 팝업 등은 통과). 단, 이 사이트에서 광고 팝업 시도가 한 번이라도
   // 감지되면 "엄격 모드"로 전환해서 외부 도메인 팝업을 전부 차단함
   // — 팝언더를 쓰는 사이트는 매번 랜덤 도메인을 쓰기 때문.
-  let strictMode = STRICT_POPUP_HOSTS.some(
-    (h) => host === h || host.endsWith("." + h)
-  );
+  const isStrictHost = (h) =>
+    !!h && STRICT_POPUP_HOSTS.some((s) => h === s || h.endsWith("." + s));
+
+  // 임베드 플레이어가 iframe 안에서 팝언더를 여는 경우가 많다(sextb.net의
+  // turboplays.click 등). iframe 안에서는 location.hostname이 플레이어 쪽이라
+  // 위 목록에 안 걸리므로, **부모 페이지가 엄격 대상이면 물려받는다**.
+  // (iframe의 document.referrer = 임베드한 페이지 주소)
+  const parentHost = (() => {
+    if (window.top === window.self) return null;
+    try {
+      return new URL(document.referrer).hostname;
+    } catch (e) {
+      return null;
+    }
+  })();
+
+  let strictMode = isStrictHost(host) || isStrictHost(parentHost);
 
   const fakeWindow = () => ({
     closed: true,

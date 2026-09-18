@@ -112,6 +112,15 @@
   - `ins.adsbyexoclick` / `ins[class^=eas]`(ExoClick 슬롯), `.ts-im-container`
     (tsyndicate) — 스크립트를 막아도 빈 컨테이너가 남아 자리를 차지함.
     범용이라 전역 AD_SELECTORS + hide.css 에 넣음.
+  **팝언더가 iframe 안에서 열림** (v2.10.2에서 대응): 재생 버튼을 누르면 새 창
+  광고가 뜨는데, 상위 페이지에서 `window.open`을 후킹해보면 **호출 0건**이다
+  — 팝언더는 `turboplays.click` 플레이어 iframe 안에서 열린다. popup-guard는
+  `all_frames: true`라 그 안에서도 돌지만, `location.hostname`이 플레이어
+  도메인이라 `STRICT_POPUP_HOSTS`에 안 걸려 엄격 모드가 꺼져 있었다.
+  → **부모 페이지가 엄격 대상이면 iframe도 물려받도록** 수정
+  (iframe의 `document.referrer` = 임베드한 페이지). 리퍼러가 비는 경우를 대비해
+  `turboplays.click` 자체도 목록에 추가. 앞으로 임베드 플레이어에서 팝언더가
+  뜨면 이 상속 로직으로 대부분 자동 커버됨.
   **못 지우는 것**: 플레이어 안의 "UPGRADE V.I.P MEMBER NOW" 오버레이는
   `turboplays.click` iframe 내부(교차 출처)라 cleaner가 접근 못 함.
   cleaner는 top frame 전용이고, allFrames를 켜도 선택자를 알 수 없어 소용없음.
@@ -220,6 +229,13 @@ popup-guard/downloader는 `world: "MAIN"`이라 `chrome.storage`를 못 읽는�
 - 도메인을 계속 바꾸는 악질 사이트: `rules.json`의 id:4 규칙을 복사해 새 규칙으로
   만들고 `initiatorDomains`에 사이트, `excludedRequestDomains`에 그 사이트가
   정상 동작에 쓰는 CDN을 기입. + `popup-guard.js`의 `STRICT_POPUP_HOSTS`에 추가.
+  **단 화이트리스트는 만능이 아님** — 플레이어를 외부 스크립트가 만들어 넣는
+  사이트(bestjavporn)에서는 재생이 깨진다. 재생 경로를 먼저 실측하고 고를 것.
+- 재생 버튼을 누르면 새 창 광고가 뜨는데 상위 페이지 `window.open` 후킹에
+  안 잡히면 → 팝언더가 **플레이어 iframe 안에서** 열리는 것.
+  `STRICT_POPUP_HOSTS`에 사이트를 넣어도 iframe 안에서는 hostname이 달라
+  안 걸리므로, 부모 상속 로직(`document.referrer`)이 처리한다. 리퍼러가 비면
+  플레이어 호스트 자체를 목록에 추가.
 - 다운로드 버튼이 안 뜨는 새 사이트: 플레이어가 `window.flashvars`를 쓰는
   KVS 계열인지 확인. 버튼 삽입 위치는 `downloader.js`의 `placeButton` 후보 배열에
   해당 사이트의 액션 행 선택자를 추가.
