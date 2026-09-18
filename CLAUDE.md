@@ -90,6 +90,22 @@
   JS가 만들어 넣는다. 원본 HTML에는 `<video>`도 소스 URL도 없음(되는 편/안 되는
   편 모두 동일) → 재생 실패는 편별 소스 조회 실패이지 확장 탓이 아님.
 
+- sextb.net (v2.10.0): 여기도 **화이트리스트 안 씀** — 도메인 개별 차단만.
+  구조: 진짜 플레이어는 `#sextb-player` 안의 **`turboplays.click` iframe**
+  (970x560). 포스터·영상은 `cdn001.imggle.net`, 샘플 영상은
+  `cdn-dl.webstream.ne.jp`, 플레이어 라이브러리는 `vjs.zencdn.net`(Video.js).
+  `challenges.cloudflare.com`(Turnstile)도 정상 기능 — **이 6개는 절대 막지 말 것**.
+  실측 광고: `a.chnsrv.com`, `ad.twinrdengine.com`, `adplsr.com`,
+  `analytics.ozlinedsp.com`, `cm.pxltag.com`, `go.marzaent.com`,
+  `newshinyd.com`, `s.uuidksinc.net`, `vast.yomeno.xyz`(VAST 영상광고),
+  `yetansd.com`, `pixel.onaudience.com`, `x8y8awcr.xyz`(300x250·900x250 배너
+  iframe 5개 — 랜덤 도메인이라 바뀔 수 있음), `z6v2p9a8.bkcdn.net`(ExoClick 자산).
+  기존 차단분도 다수: realsrv, tsyndicate, tapioni, dtscout/dtscdn, whitetrafsa,
+  magsrv, histats, strpst, crwdcntrl, mrktmtrcs.
+  **프리롤 광고**: 재생 버튼을 누르면 `tsvideo.saawsedge.com` 영상이
+  플레이어 크기(970x560)로 덮어씌워진다(`.ts-im-video-wrapper` = tsyndicate).
+  saawsedge.com 차단으로 제거됨.
+
 ## on/off 스위치 (v2.7.0)
 
 툴바 버튼 → 토글 스위치. 상태는 `chrome.storage.local.enabled` (없으면 켜짐).
@@ -264,4 +280,9 @@ node --check popup-guard.js && node --check downloader.js && node --check cleane
   스크립트 + whitetrafsa smartpop iframe(팝언더), 통과: 영상 호스트
   `z6v2p9a8.bkcdn.net`·`video.pornfhd.com`, 썸네일, jQuery, 폰트.
   구글 애널리틱스·클라우드플레어 통계도 같이 차단됨(무해).
-- version 2.9.0.
+- sextb.net: 광고 도메인 실측 후 id:1에 14개 추가 (v2.10.0). 실제 로드된
+  리소스 전체에 규칙을 대입해 검증 — 광고/트래커 35개 차단, 플레이어
+  (`turboplays.click`)·포스터(`imggle.net`)·샘플(`webstream.ne.jp`)·
+  Video.js(`zencdn.net`)·Cloudflare Turnstile은 통과 확인.
+  bestjavporn 교훈을 반영해 화이트리스트는 쓰지 않음.
+- version 2.10.0.
