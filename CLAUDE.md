@@ -132,6 +132,19 @@
      새 창을 여는 앵커 클릭도 취소 (엄격 대상 사이트 한정).
   검증: 우회 재현 코드가 차단되고, 교차 출처 iframe 접근이 예외를 안 내며,
   정상 iframe도 그대로 동작함을 브라우저에서 확인.
+  **팝언더 목적지를 결국 잡아냄** (v2.10.4): `oj.bacchiccupule.qpon`.
+  잡은 방법 — 확장 없는 Browser pane에서 재생 버튼을 실제로 두 번 클릭하면
+  pane이 새 탭 열기를 막으면서 **목적지 도메인을 결과 노트로 알려준다**.
+  (플레이어 iframe 내부는 교차 출처라 스크립트 계측이 불가능하므로 이 방법이
+  사실상 유일. 플레이어 URL을 직접 열어 계측하는 것도 시도했으나 임베드가
+  아니면 "LOADING..."에서 멈춰 실패)
+  `.qpon`은 무작위 단어 + TLD 조합으로 도메인을 계속 바꾸는 광고망이 씀
+  (nswpedia의 `swordermislike.qpon`, `gp.mulmhitch.cfd`와 같은 계열).
+  개별 도메인 차단은 곧 뚫리므로 **TLD 단위로 차단**: rules.json id:10
+  정규식 `^https?://[a-z0-9.-]+\.(qpon|cfd)/` (main_frame 포함 = 팝언더 창이
+  열려도 내용이 안 뜸) + AD_HINTS에도 `\.(qpon|cfd)\/` 추가(창 자체를 안 열게).
+  주의: 실제로 관측한 TLD만 넣을 것. `.sbs`/`.lol` 같은 걸 추측으로 넣으면
+  정상 사이트를 막게 됨.
   **못 지우는 것**: 플레이어 안의 "UPGRADE V.I.P MEMBER NOW" 오버레이는
   `turboplays.click` iframe 내부(교차 출처)라 cleaner가 접근 못 함.
   cleaner는 top frame 전용이고, allFrames를 켜도 선택자를 알 수 없어 소용없음.
@@ -322,4 +335,7 @@ node --check popup-guard.js && node --check downloader.js && node --check cleane
   (`turboplays.click`)·포스터(`imggle.net`)·샘플(`webstream.ne.jp`)·
   Video.js(`zencdn.net`)·Cloudflare Turnstile은 통과 확인.
   bestjavporn 교훈을 반영해 화이트리스트는 쓰지 않음.
-- version 2.10.0.
+- sextb.net 팝언더: 목적지 `oj.bacchiccupule.qpon` 실측 후 `.qpon`/`.cfd`
+  TLD 통째 차단(id:10) + AD_HINTS 반영 (v2.10.4). 정규식이 팝언더는 잡고
+  네이버·sextb·turboplays 같은 정상 주소는 안 건드리는 것을 테스트로 확인.
+- version 2.10.4.

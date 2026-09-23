@@ -249,5 +249,26 @@
       "regexFilter": "/files/banner_\\d+x\\d+\\.html",
       "resourceTypes": ["sub_frame", "xmlhttprequest", "other"]
     }
+  },
+  {
+    "id": 10,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "regexFilter": "^https?://[a-z0-9.-]+\\.(qpon|cfd)/",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame",
+        "script",
+        "image",
+        "stylesheet",
+        "xmlhttprequest",
+        "media",
+        "font",
+        "ping",
+        "websocket",
+        "other"
+      ]
+    }
   }
 ]

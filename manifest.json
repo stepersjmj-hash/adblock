@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "MJ AdBlock",
-  "version": "2.10.3",
+  "version": "2.10.4",
   "description": "광고 네트워크 요청 차단 + 팝업/팝언더 차단 + 광고 요소 제거 + 우클릭 차단 해제 + 영상 다운로드 버튼",
   "permissions": ["declarativeNetRequest", "downloads", "scripting", "storage"],
   "host_permissions": ["<all_urls>"],
