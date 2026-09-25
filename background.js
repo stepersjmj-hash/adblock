@@ -35,6 +35,16 @@ const CONTENT_SCRIPTS = [
     persistAcrossSessions: true
   },
   {
+    // MAIN world인 downloader.js를 대신해 확장 권한이 필요한 일을 처리하는 다리:
+    // 원본 페이지 제목 전달 + chrome.downloads 로 저장 (교차 출처 파일명 문제 회피)
+    id: "dl-bridge",
+    matches: ["<all_urls>"],
+    js: ["dl-bridge.js"],
+    runAt: "document_start",
+    allFrames: true,
+    persistAcrossSessions: true
+  },
+  {
     // EBS 전용. isolated world라서 chrome.runtime으로 백그라운드에 요청 가능
     // (영상 CDN이 CORS를 막아 페이지에서 직접 받을 수 없기 때문)
     id: "ebs-downloader",
@@ -47,6 +57,26 @@ const CONTENT_SCRIPTS = [
     persistAcrossSessions: true
   }
 ];
+
+// title-bridge 요청: 이 탭을 연 탭(openerTabId)의 제목을 돌려준다.
+// 임베드 플레이어 페이지는 자기 제목이 쓸모없어서 파일명을 못 만드는데,
+// 그 탭을 연 원본 글 페이지의 제목이 곧 영상 제목이다.
+// (tab.title 은 host_permissions 로 읽을 수 있어 별도 권한 불필요)
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (!msg || msg.type !== "mj-opener-title") return;
+  if (!sender || sender.id !== chrome.runtime.id) return;
+  const openerId = sender.tab && sender.tab.openerTabId;
+  if (openerId == null) {
+    sendResponse({ title: null });
+    return true;
+  }
+  chrome.tabs.get(openerId, (t) => {
+    sendResponse({
+      title: chrome.runtime.lastError ? null : (t && t.title) || null
+    });
+  });
+  return true; // 비동기 응답
+});
 
 // ebs-downloader가 넘긴 주소를 브라우저 다운로드로 처리 (CORS 무관)
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {

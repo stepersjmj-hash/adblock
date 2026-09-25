@@ -15,6 +15,7 @@
 | `popup-guard.js` | MAIN / document_start | 팝업·팝언더 차단 + 우클릭/복사 차단 해제 |
 | `downloader.js` | MAIN / document_idle / all_frames | 영상 재생 페이지에 다운로드 버튼 삽입 |
 | `ebs-downloader.js` | isolated / document_idle / all_frames / ebs.co.kr | EBS VOD 저장 버튼 (chrome.downloads 경유) |
+| `dl-bridge.js` | isolated / document_start / all_frames | downloader.js(MAIN)를 위한 다리 — 원본 탭 제목 전달 + chrome.downloads 저장 중계 |
 | `cleaner.js` | isolated / document_end | 광고 DOM 요소·오버레이 실시간 제거 (MutationObserver) |
 | `hide.css` | — | 광고 컨테이너 즉시 숨김 (cleaner.js 보조) |
 | `_metadata/…/_ruleset1` | — | 크롬이 rules.json으로 자동 생성하는 인덱스 (직접 편집 X) |
@@ -130,6 +131,10 @@
      (교차 출처는 접근 시 예외 → 무시. 그쪽은 자기 프레임의 popup-guard 담당)
   2. **합성한 `<a target="_blank">` 클릭** — 엄격 모드에서는 외부 도메인으로
      새 창을 여는 앵커 클릭도 취소 (엄격 대상 사이트 한정).
+     ⚠️ **v2.11.0에서 `ev.isTrusted === false` 조건 추가** — 처음엔 조건 없이
+     막았더니 **사람이 직접 누른 외부 링크까지 죽었다**. watchfreejavonline의
+     "다운로드"(새 탭으로 xxembed 열기)가 이 규칙에 걸려 동작하지 않았음.
+     스크립트가 합성한 클릭만 isTrusted=false 이므로 이것만 막으면 된다.
   검증: 우회 재현 코드가 차단되고, 교차 출처 iframe 접근이 예외를 안 내며,
   정상 iframe도 그대로 동작함을 브라우저에서 확인.
   **팝언더 목적지를 결국 잡아냄** (v2.10.4): `oj.bacchiccupule.qpon`.
@@ -212,6 +217,32 @@ popup-guard/downloader는 `world: "MAIN"`이라 `chrome.storage`를 못 읽는�
   로그인해도 서버가 `end=60`이 붙은 60초 맛보기만 내려준다. 받아도 60초짜리라
   버튼이 `end=` 파라미터를 감지하면 저장을 막고 안내만 띄움.
   EBS 자체 제작물(한글용사 아이야 등)은 로그인만으로 전체가 재생됨(실측 13:07).
+
+## 다운로드 파일명 (v2.11.0)
+
+**증상**: 파일명이 영상 제목이 아니라 서버가 주는 이름으로 저장됨 (kissjav).
+
+**원인 1 — 교차 출처 제한**: 영상 파일이 페이지와 다른 도메인에 있으면
+(kissjav → `cdnhop.com`) 브라우저가 `<a download>`의 **파일명 지정을 무시**한다.
+파일명은 서버의 `Content-Disposition`/URL을 따라간다. 같은 출처일 때만 적용됨.
+→ `chrome.downloads.download()` 로 받으면 이 제한이 없다. 그런데 downloader.js는
+MAIN world(flashvars 접근 때문)라 `chrome.*` 를 못 쓴다 →
+`dl-bridge.js`(isolated)가 중계: MAIN이 `mj-download-request` CustomEvent를
+쏘면 다리가 백그라운드로 넘기고 `mj-download-result`로 결과를 돌려준다.
+다리가 없거나 2.5초 내 응답이 없으면 기존 `<a download>` 방식으로 폴백.
+
+**원인 2 — 쓸 만한 제목이 없음**: 임베드 플레이어 페이지의 `<title>`은
+"Embed"거나 주소 그 자체라 파일명으로 못 쓴다. 진짜 제목은 **그 탭을 연 원본 글
+페이지**에 있는데 교차 출처라 페이지 스크립트로는 못 읽는다.
+→ 백그라운드가 `sender.tab.openerTabId` 의 탭 제목을 읽어(`host_permissions`로
+가능, 별도 권한 불필요) 다리가 `documentElement.dataset.mjOpenerTitle` 에 심어준다.
+
+제목 우선순위: `flashvars.video_title` → 쓸 만한 `document.title` →
+원본 탭 제목 → 주소 슬러그 → "video".
+- `usefulDocTitle()`이 "Embed/Player/Video" 같은 일반명사, 4자 미만, 주소 형태를
+  걸러낸다. **이 필터가 없으면 "Embed"가 진짜 제목을 밀어낸다** (단위 테스트로 발견).
+- `trimSiteName()`은 "영상 제목 - 사이트 이름"에서 앞부분만 취함.
+  앞 조각이 3자 미만이면 잘못 자른 것으로 보고 원본 유지.
 
 ## 핵심 함정 (실제로 겪은 것)
 
@@ -338,4 +369,9 @@ node --check popup-guard.js && node --check downloader.js && node --check cleane
 - sextb.net 팝언더: 목적지 `oj.bacchiccupule.qpon` 실측 후 `.qpon`/`.cfd`
   TLD 통째 차단(id:10) + AD_HINTS 반영 (v2.10.4). 정규식이 팝언더는 잡고
   네이버·sextb·turboplays 같은 정상 주소는 안 건드리는 것을 테스트로 확인.
-- version 2.10.4.
+- 다운로드 파일명 (v2.11.0): kissjav처럼 영상 파일이 다른 도메인에 있는 사이트는
+  `<a download>`의 파일명이 무시돼 서버 이름으로 저장되던 문제 → `dl-bridge.js`를
+  통해 `chrome.downloads`로 저장하도록 변경(실패 시 기존 방식 폴백).
+  제목 결정 로직은 단위 테스트로 검증 (kissjav 3케이스 + 임베드/멀티파트 3케이스).
+  같은 버전에서 popup-guard의 앵커 차단이 사람이 누른 링크까지 막던 회귀도 수정.
+- version 2.11.0.

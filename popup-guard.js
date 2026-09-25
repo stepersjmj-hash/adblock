@@ -143,10 +143,12 @@
         ev.stopImmediatePropagation();
         return;
       }
-      // 엄격 모드에서는 새 창으로 뜨는 외부 링크도 전부 차단.
-      // window.open 대신 합성한 <a target="_blank"> 클릭으로 새 창을 여는
-      // 팝언더가 있어서 필요함 (엄격 대상 사이트 한정이라 일반 사이트 영향 없음)
-      if (!strictMode || a.target !== "_blank") return;
+      // window.open 대신 <a target="_blank"> 클릭을 "합성"해서 새 창을 여는
+      // 팝언더가 있어 엄격 모드에서는 이것도 막는다.
+      // 단 **스크립트가 만든 클릭만** 막을 것 — isTrusted 로 구분한다.
+      // (사람이 직접 누른 외부 링크까지 막으면 watchfreejavonline의 "다운로드"
+      //  처럼 새 탭으로 여는 정상 기능이 죽는다. 실제로 그런 적 있음)
+      if (!strictMode || a.target !== "_blank" || ev.isTrusted) return;
       try {
         if (new URL(a.href, location.href).origin !== location.origin) {
           ev.preventDefault();

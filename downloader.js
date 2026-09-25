@@ -15,23 +15,71 @@
     return null;
   }
 
+  function sanitize(s) {
+    return String(s || "")
+      .replace(/[\\/:*?"<>|]+/g, "_") // 파일명에 못 쓰는 문자 제거
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 120);
+  }
+
+  // 이 탭을 연 원본 글 페이지의 제목 (dl-bridge.js가 DOM 속성에 심어줌).
+  // 임베드 플레이어는 자기 <title>이 "Embed" 같은 값이라 쓸 수 없어서 필요함.
+  function openerTitle() {
+    try {
+      return trimSiteName(document.documentElement.dataset.mjOpenerTitle || "");
+    } catch (e) {
+      return "";
+    }
+  }
+
+  // "영상 제목 - 사이트 이름" 형태가 흔하므로 앞부분만 사용.
+  // 앞 조각이 너무 짧으면 잘못 자른 것이므로 원본을 그대로 둔다.
+  function trimSiteName(t) {
+    const head = String(t || "").split(/\s+[-|–—]\s+/)[0];
+    return sanitize(head.length >= 3 ? head : t);
+  }
+
+  // 임베드 플레이어 페이지의 <title>은 "Embed", "Player", 또는 주소 그 자체처럼
+  // 파일명으로 쓸 수 없는 값인 경우가 많다. 그런 제목은 버리고 다음 후보로 넘긴다.
+  function usefulDocTitle() {
+    const t = trimSiteName(document.title);
+    if (!t || t.length < 4) return "";
+    if (/^(embed|player|video|loading|untitled|home|index)$/i.test(t)) return "";
+    // "xxembed.com/embed-abc.html" 처럼 제목이 없어 브라우저가 주소를 보여주는 경우
+    if (/^[\w-]+(\.[\w-]+)+(\/|$)/.test(t) || /:\/\//.test(t)) return "";
+    return t;
+  }
+
+  // 주소의 마지막 조각도 보통 제목에서 만들어진다 (한글이면 퍼센트 인코딩됨)
+  function titleFromSlug() {
+    try {
+      const seg = decodeURIComponent(location.pathname)
+        .replace(/\/+$/, "")
+        .split("/")
+        .pop();
+      return sanitize(String(seg || "").replace(/[-_]+/g, " "));
+    } catch (e) {
+      return "";
+    }
+  }
+
   function getVideoInfo() {
     const fv = window.flashvars;
     if (!fv) return null;
     const url = resolveUrl(fv.video_url) || resolveUrl(fv.video_alt_url);
     if (!url) return null;
-    const title = (fv.video_title || document.title || "video")
-      .replace(/[\\/:*?"<>|]+/g, "_") // 파일명에 못 쓰는 문자 제거
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, 120);
+    const title =
+      sanitize(fv.video_title) ||
+      usefulDocTitle() ||
+      openerTitle() ||
+      titleFromSlug() ||
+      "video";
     const postfix = fv.postfix && /^\.\w+$/.test(fv.postfix) ? fv.postfix : ".mp4";
     return { url, filename: title + postfix };
   }
 
-  function startDownload(info) {
-    // 같은 출처(get_file...)에서 시작하는 링크라 download 속성이 적용됨.
-    // 서버가 실제 파일 호스트로 302 리다이렉트해도 브라우저가 따라가 저장함.
+  function anchorDownload(info) {
     const a = document.createElement("a");
     a.href = info.url;
     a.download = info.filename;
@@ -39,6 +87,37 @@
     document.body.appendChild(a);
     a.click();
     a.remove();
+  }
+
+  // **파일명이 영상 제목으로 안 붙던 이유**: 영상 파일이 페이지와 다른 도메인에
+  // 있으면(kissjav → cdnhop.com 등) 브라우저가 `<a download>`의 파일명 지정을
+  // 교차 출처 제한으로 무시하고 서버가 주는 이름으로 저장해버린다.
+  // → 확장의 chrome.downloads 로 받으면 제한이 없다. dl-bridge 를 통해 요청하고,
+  //   다리가 없거나 실패하면 기존 방식으로 되돌린다(최소한 받아지기는 하도록).
+  function startDownload(info, onStatus) {
+    let settled = false;
+    function onResult(ev) {
+      const d = (ev && ev.detail) || {};
+      finish(!!d.ok, d.error);
+    }
+    function finish(ok, err) {
+      if (settled) return;
+      settled = true;
+      document.removeEventListener("mj-download-result", onResult);
+      if (!ok) anchorDownload(info); // 폴백
+      if (onStatus) onStatus(ok, err);
+    }
+    document.addEventListener("mj-download-result", onResult);
+    try {
+      document.dispatchEvent(
+        new CustomEvent("mj-download-request", {
+          detail: { url: info.url, filename: info.filename }
+        })
+      );
+    } catch (e) {
+      return finish(false, "dispatch");
+    }
+    setTimeout(() => finish(false, "timeout"), 2500);
   }
 
   // ── HLS(m3u8) 다운로드: 임베드 전용 호스트 ─────────────────────────
@@ -74,15 +153,19 @@
       // 소스가 상대 경로("/stream/.../master.m3u8")인 호스트가 있어 절대화 필수
       const url = new URL(hls.file, location.href).href;
 
-      // 파일명: 원본 글 슬러그(리퍼러) > 임베드 ID > "video"
-      let name = "";
-      try {
-        name = decodeURIComponent(new URL(document.referrer).pathname)
-          .replace(/\/+$/, "")
-          .split("/")
-          .pop()
-          .replace(/\.(html?|php)$/i, "");
-      } catch (e) {}
+      // 파일명: 원본 글 제목 > 원본 글 슬러그(리퍼러) > 임베드 ID > "video"
+      // 제목을 먼저 쓰는 이유 — 슬러그는 하이픈 범벅이고, 멀티파트 목록 페이지를
+      // 거쳐 오면 리퍼러가 무의미한 값(예: ms32z8v7)이 되기 때문
+      let name = openerTitle();
+      if (!name) {
+        try {
+          name = decodeURIComponent(new URL(document.referrer).pathname)
+            .replace(/\/+$/, "")
+            .split("/")
+            .pop()
+            .replace(/\.(html?|php)$/i, "");
+        } catch (e) {}
+      }
       const embedId =
         (location.pathname.match(/(?:embed[-/]|\/e\/)([\w-]+)/i) || [])[1] || "";
       if (!name) name = embedId || "video";
