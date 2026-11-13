@@ -186,6 +186,16 @@
     버튼은 sendvid iframe 안에 뜨므로(교차 출처라 부모 페이지에 못 넣음)
     iframe 안 플로팅 버튼은 **우상단**에 둔다(하단은 컨트롤 바).
     mp4 직접 재생 임베드 호스트가 더 생기면 `DIRECT_HOSTS` 에 추가.
+  - **글마다 플레이어 호스트가 다름** (v2.13.1): topic/961 은 sendvid 가 아니라
+    `rubyvid.com/embed-<id>.html`(→ `nuvorel.top` 로 리다이렉트, jwplayer HLS).
+    이 임베드는 `<title>`·og:title 이 **비어 있고**, iframe 리퍼러도 출처
+    (`https://yamoa58.top/`)만 와서 슬러그도 없다 → 파일명이 `<id>_<id>.ts` 가 됨.
+    → **부모 → iframe 제목 전달**: downloader.js 는 all_frames 라 부모 글 페이지에서도
+    돈다. iframe 이 `postMessage({"mj-title-ask":1})` 로 물으면 부모가
+    `ownPageTitle()`(og:title → h1 → 쓸 만한 <title>)를 답한다. yamoa 는
+    `h1.video-info__title`. 중첩 iframe 은 물려받은 제목을 다시 넘겨줌.
+    부모가 준 제목일 때는 멀티파트용 `_<embedId>` 꼬리표를 안 붙인다.
+    검증: 두 프레임을 흉내 낸 node 하네스로 실제 downloader.js 를 돌려 확인.
 
 ### 확장이 깔린 채로 팝언더 목적지를 알아내는 법 (v2.12.1에서 확립)
 
@@ -455,4 +465,6 @@ node --check popup-guard.js && node --check downloader.js && node --check cleane
 - yamoa58.top 다운로드 버튼 (v2.13.0): sendvid 임베드의 mp4 source + og:title 로
   파일명 생성. 실제 페이지(topic/4403)에서 mp4 감지·파일명("속이 빈 남자의 로나
   미트라.mp4")·iframe 안 버튼 가시성 확인. 확장 재로드 후 실저장은 사용자 확인 필요.
-- version 2.13.0.
+- yamoa topic/961 (rubyvid HLS) 파일명 (v2.13.1): 부모 글 페이지가 postMessage 로
+  iframe 에 제목 전달 → "IP 아이패드(헤어롤).ts". 확장 재로드 후 실저장은 사용자 확인 필요.
+- version 2.13.1.

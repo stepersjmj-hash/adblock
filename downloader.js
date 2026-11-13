@@ -51,6 +51,50 @@
     return t;
   }
 
+  // ── 부모 페이지 → 임베드 iframe 제목 전달 ────────────────────────
+  // 같은 탭 안에 iframe 으로 끼워진 플레이어(yamoa → rubyvid 등)는 자기 페이지에
+  // 제목이 전혀 없고, 리퍼러도 출처(origin)만 와서 슬러그조차 못 얻는다.
+  // 진짜 제목은 부모 글 페이지에만 있는데 교차 출처라 직접 못 읽으므로
+  // postMessage 로 물어본다. (이 스크립트는 all_frames 라 부모에서도 돈다)
+  const TITLE_ASK = "mj-title-ask";
+  const TITLE_REPLY = "mj-title-reply";
+  const inFrame = window.top !== window.self;
+  let parentTitle = "";
+
+  // 이 페이지 자체가 가진 글 제목: og:title → h1 → 쓸 만한 <title>
+  function ownPageTitle() {
+    const og = document.querySelector('meta[property="og:title"]');
+    const t1 = sanitize(og && og.content);
+    if (t1) return trimSiteName(t1);
+    const h1 = document.querySelector("h1");
+    const t2 = sanitize(h1 && h1.textContent);
+    if (t2.length >= 2) return t2;
+    return usefulDocTitle();
+  }
+
+  window.addEventListener("message", (ev) => {
+    const d = ev && ev.data;
+    if (!d || typeof d !== "object") return;
+    if (d[TITLE_ASK] && ev.source) {
+      // 자식 프레임의 질문 → 내가 아는 제목(내가 iframe 이면 물려받은 것 우선)
+      const title = (inFrame && parentTitle) || ownPageTitle();
+      if (title) {
+        try {
+          ev.source.postMessage({ [TITLE_REPLY]: title }, "*");
+        } catch (e) {}
+      }
+    } else if (d[TITLE_REPLY] && ev.source === window.parent) {
+      parentTitle = sanitize(d[TITLE_REPLY]);
+    }
+  });
+
+  function askParentTitle() {
+    if (!inFrame || parentTitle) return;
+    try {
+      window.parent.postMessage({ [TITLE_ASK]: 1 }, "*");
+    } catch (e) {}
+  }
+
   // 주소의 마지막 조각도 보통 제목에서 만들어진다 (한글이면 퍼센트 인코딩됨)
   function titleFromSlug() {
     try {
@@ -95,7 +139,11 @@
     if (!url || !/\.mp4(\?|$)/i.test(url)) return null;
     const og = document.querySelector('meta[property="og:title"]');
     const title =
-      sanitize(og && og.content) || openerTitle() || usefulDocTitle() || "video";
+      sanitize(og && og.content) ||
+      openerTitle() ||
+      parentTitle ||
+      usefulDocTitle() ||
+      "video";
     return { url, filename: title + ".mp4" };
   }
 
@@ -177,6 +225,10 @@
       // 제목을 먼저 쓰는 이유 — 슬러그는 하이픈 범벅이고, 멀티파트 목록 페이지를
       // 거쳐 오면 리퍼러가 무의미한 값(예: ms32z8v7)이 되기 때문
       let name = openerTitle();
+      // 같은 탭의 부모 글 페이지가 알려준 제목 — 이 경우는 한 글에 한 영상이라
+      // 아래 멀티파트용 ID 꼬리표를 붙이지 않는다
+      const fromParent = !name && !!parentTitle;
+      if (fromParent) name = parentTitle;
       if (!name) {
         try {
           name = decodeURIComponent(new URL(document.referrer).pathname)
@@ -191,7 +243,7 @@
       if (!name) name = embedId || "video";
       // 여러 파트를 iframe으로 돌려 보여주는 페이지(xxxbed 등)는 파트마다
       // 리퍼러가 같아서 이름이 겹침 → 임베드 ID를 붙여 구분
-      if (window.top !== window.self && embedId) name += "_" + embedId;
+      if (inFrame && embedId && !fromParent) name += "_" + embedId;
       name = name.replace(/[\\/:*?"<>|]+/g, "_").slice(0, 120);
       return { type: "hls", url, filename: name + ".ts" };
     } catch (e) {
@@ -340,7 +392,6 @@
   function styleFloating(btn) {
     // iframe(임베드 플레이어) 안에서는 화면 = 플레이어라 하단은 컨트롤 바·자막
     // 자리 → 우상단에 둔다
-    const inFrame = window.top !== window.self;
     Object.assign(btn.style, {
       position: "fixed",
       right: inFrame ? "12px" : "20px",
@@ -402,6 +453,7 @@
 
   // flashvars 가 준비되면 버튼을 만들고, 이후에도 버튼이 사라지면 다시 삽입 (자가 복구)
   function ensureButton() {
+    askParentTitle(); // 부모가 늦게 준비될 수 있어 받을 때까지 매 주기 물어봄
     const info = getVideoInfo() || getDirectInfo() || getHlsInfo();
     if (!info) return; // 아직 영상 정보 없음 (또는 영상 페이지 아님)
     const existing = document.getElementById(BTN_ID);
