@@ -246,6 +246,22 @@ MAIN world(flashvars 접근 때문)라 `chrome.*` 를 못 쓴다 →
 
 ## 핵심 함정 (실제로 겪은 것)
 
+0. **`window.open` 을 writable:false 로 고정하면 정상 사이트가 통째로 죽는다**
+   (v2.11.1에서 수정. 증상: 트립비토즈 등에서 화면에
+   "Application error: a client-side exception has occurred" 만 뜸)
+   - 원인: 자기 코드에서 `window.open = ...` 하는 사이트(Next.js/React 번들 등)가
+     흔한데, 번들 코드는 strict mode 라 **읽기 전용 속성 대입이 TypeError**가 된다.
+     그 예외가 렌더링 중에 터지면 앱 전체가 크래시한다.
+     콘솔 신호: `Cannot assign to read only property 'open' of object '#<Window>'`
+   - **광고 차단 규칙과 무관하게** 모든 사이트에 영향 → 네트워크 규칙만 뒤지면
+     원인을 못 찾는다. 사이트가 쓰는 호스트가 차단 목록에 하나도 없는데 안 되면
+     콘텐트 스크립트를 의심하고 **확장이 켜진 크롬에서 콘솔을 직접 볼 것**.
+   - 수정: 값 고정 대신 **접근자(getter/setter)** 로 둔다. getter 는 항상 가드된
+     함수를 돌려주고(보호 유지), setter 는 대입을 조용히 받아 `siteOpen` 에
+     보관만 한다(예외 없음). 차단 대상이 아닌 주소만 그 사이트 래퍼로 넘긴다.
+   - 교훈: 전역 객체를 **동결/고정하는 방어는 사이트를 깨뜨린다.** 가로채되
+     던지지 말 것.
+
 1. **광고 도메인이 매 접속마다 바뀜** — kissjav의 광고는 `coverdistilltile.com`,
    `qfanakacp.in`, `alfalfaemployeeresource.com` 처럼 랜덤 영단어 도메인을 씀.
    개별 도메인 추가로는 못 막아서 → `initiatorDomains` 화이트리스트 규칙(id:4)으로
@@ -374,4 +390,9 @@ node --check popup-guard.js && node --check downloader.js && node --check cleane
   통해 `chrome.downloads`로 저장하도록 변경(실패 시 기존 방식 폴백).
   제목 결정 로직은 단위 테스트로 검증 (kissjav 3케이스 + 임베드/멀티파트 3케이스).
   같은 버전에서 popup-guard의 앵커 차단이 사람이 누른 링크까지 막던 회귀도 수정.
-- version 2.11.0.
+- **정상 사이트 크래시 수정 (v2.11.1)**: `window.open` 고정 방식 때문에
+  트립비토즈(tripbtoz.com) 등 `window.open` 에 대입하는 사이트가
+  "Application error..." 로 죽던 문제. 접근자 방식으로 교체.
+  확장 켠 크롬에서 콘솔 오류로 원인 특정, 수정안은 단위 테스트 5종으로 검증
+  (대입 시 예외 없음 / 읽으면 가드 함수 / 광고·`.qpon` 차단 유지 / 정상 주소 통과).
+- version 2.11.1.

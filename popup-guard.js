@@ -76,6 +76,10 @@
 
   const realOpen = window.open.bind(window);
 
+  // 사이트가 자기 용도로 window.open 을 감싸 둔 경우 그 함수를 기억해 둔다.
+  // (차단 대상이 아닌 주소는 사이트 것으로 열어줘야 원래 동작이 유지됨)
+  let siteOpen = null;
+
   function guardedOpen(url, ...rest) {
     try {
       const u = new URL(url || "", location.href);
@@ -86,22 +90,40 @@
       if (strictMode && u.origin !== location.origin) {
         return fakeWindow();
       }
+      // 통과시킬 주소만 사이트 래퍼(있으면)에 넘긴다 → 광고는 여기까지 못 옴
+      if (typeof siteOpen === "function") {
+        try {
+          return siteOpen.call(window, url, ...rest);
+        } catch (e) {}
+      }
       return realOpen(url, ...rest);
     } catch (e) {
       return fakeWindow();
     }
   }
 
-  window.open = guardedOpen;
-
-  // 광고 스크립트가 덮어쓴 window.open을 되돌리지 못하게 고정
+  // 광고 스크립트가 window.open 을 제 것으로 되돌리지 못하게 막되,
+  // **대입이 예외를 던지면 안 된다.**
+  //   writable:false 로 고정했더니, 자기 코드에서 `window.open = ...` 하는
+  //   평범한 사이트(Next.js 등)가 strict mode 에서 TypeError 로 통째로 죽었다
+  //   ("Application error: a client-side exception has occurred").
+  // → 접근자로 두고 setter 가 대입을 조용히 받아 siteOpen 에 보관만 한다.
+  //   읽을 때는 언제나 가드된 함수가 나가므로 보호는 그대로 유지된다.
   try {
     Object.defineProperty(window, "open", {
-      value: window.open,
-      writable: false,
-      configurable: false
+      configurable: false,
+      get() {
+        return guardedOpen;
+      },
+      set(v) {
+        if (typeof v === "function") siteOpen = v;
+      }
     });
-  } catch (e) {}
+  } catch (e) {
+    try {
+      window.open = guardedOpen;
+    } catch (e2) {}
+  }
 
   // 우회 차단: 팝언더 스크립트가 흔히 쓰는 수법 — 빈 iframe을 만든 뒤
   // 그 안의 "손대지 않은" window.open 을 꺼내 호출한다. 위에서 고정한 건
