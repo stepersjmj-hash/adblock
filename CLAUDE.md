@@ -196,6 +196,12 @@
     `h1.video-info__title`. 중첩 iframe 은 물려받은 제목을 다시 넘겨줌.
     부모가 준 제목일 때는 멀티파트용 `_<embedId>` 꼬리표를 안 붙인다.
     검증: 두 프레임을 흉내 낸 node 하네스로 실제 downloader.js 를 돌려 확인.
+  - **iframe 에서는 부모 제목 > 원본 탭 제목** (v2.13.2): topic/892 가
+    `yamoa 야모아_<id>.ts` 로 저장됨. yamoa 목록 탭에서 글을 열면 그 글 탭의
+    `openerTabId` 가 목록 탭이라 `openerTitle()` = "yamoa 야모아"(사이트 이름)가
+    부모 제목을 이겨버렸다. iframe 안에서 "탭을 연 탭"은 글 이전 페이지일 뿐 →
+    `parentTitle` 을 최우선으로. openerTitle 은 임베드가 **최상위 탭**으로 열린
+    경우(watchfreejav → xxembed 새 탭)를 위한 것.
 
 ### 확장이 깔린 채로 팝언더 목적지를 알아내는 법 (v2.12.1에서 확립)
 
@@ -467,4 +473,6 @@ node --check popup-guard.js && node --check downloader.js && node --check cleane
   미트라.mp4")·iframe 안 버튼 가시성 확인. 확장 재로드 후 실저장은 사용자 확인 필요.
 - yamoa topic/961 (rubyvid HLS) 파일명 (v2.13.1): 부모 글 페이지가 postMessage 로
   iframe 에 제목 전달 → "IP 아이패드(헤어롤).ts". 확장 재로드 후 실저장은 사용자 확인 필요.
-- version 2.13.1.
+- yamoa topic/892 파일명 (v2.13.2): iframe 에서 부모 글 제목을 원본 탭 제목보다
+  우선 → "IP 깔판, 한글 단어.ts" (하네스로 재현·확인).
+- version 2.13.2.

@@ -140,8 +140,8 @@
     const og = document.querySelector('meta[property="og:title"]');
     const title =
       sanitize(og && og.content) ||
-      openerTitle() ||
       parentTitle ||
+      openerTitle() ||
       usefulDocTitle() ||
       "video";
     return { url, filename: title + ".mp4" };
@@ -224,11 +224,12 @@
       // 파일명: 원본 글 제목 > 원본 글 슬러그(리퍼러) > 임베드 ID > "video"
       // 제목을 먼저 쓰는 이유 — 슬러그는 하이픈 범벅이고, 멀티파트 목록 페이지를
       // 거쳐 오면 리퍼러가 무의미한 값(예: ms32z8v7)이 되기 때문
-      let name = openerTitle();
-      // 같은 탭의 부모 글 페이지가 알려준 제목 — 이 경우는 한 글에 한 영상이라
-      // 아래 멀티파트용 ID 꼬리표를 붙이지 않는다
-      const fromParent = !name && !!parentTitle;
-      if (fromParent) name = parentTitle;
+      // 같은 탭의 부모 글 페이지가 알려준 제목이 최우선 — iframe 안에서
+      // "이 탭을 연 탭"의 제목은 글 이전 페이지(목록 등)라 엉뚱하다
+      // (yamoa 목록 탭에서 글을 열면 "yamoa 야모아"가 붙던 문제, v2.13.2).
+      // 한 글에 한 영상이므로 아래 멀티파트용 ID 꼬리표도 붙이지 않는다.
+      const fromParent = !!parentTitle;
+      let name = parentTitle || openerTitle();
       if (!name) {
         try {
           name = decodeURIComponent(new URL(document.referrer).pathname)
