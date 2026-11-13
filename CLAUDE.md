@@ -170,6 +170,25 @@
   - **조사 함정**: 이 사이트는 Cloudflare 봇 검사가 걸려 있어 Browser pane 에서는
     403 에 막혀 내용을 못 본다(봇 검사는 대신 풀면 안 됨).
     → 평소 쓰는 크롬(claude-in-chrome)으로 열어야 측정 가능.
+  - **영상 클릭 시 팝언더** (v2.12.1): 목적지 `pagerrentablespotlight.com`,
+    `sendvid.com` 플레이어 iframe 안에서 열림.
+    목적지가 랜덤 단어 조합이라 매번 바뀜 → 쫓지 말고 **플레이어 호스트를
+    `STRICT_POPUP_HOSTS` 에 넣는 게 정답**. 사이트 주소가 바뀌어도
+    (yamoa58 → yamoaNN) 유효하고, 영상 재생은 `window.open` 을 안 써서 안전.
+
+### 확장이 깔린 채로 팝언더 목적지를 알아내는 법 (v2.12.1에서 확립)
+
+확장을 끌 수 없거나(봇 검사로 Browser pane 접근 불가) 팝언더가 교차 출처
+iframe 안에서 열릴 때 쓰는 방법:
+
+1. 플레이어 iframe 의 `src` 를 얻어 **그 주소를 최상위 탭으로 직접 연다**
+   (sendvid 는 리퍼러 검사가 없어 바로 열림. turboplays 는 막혀서 실패했었음).
+2. 그 페이지에서 `window.open = 기록함수` 를 **대입**한다.
+   popup-guard 의 setter 가 이걸 `siteOpen` 으로 보관하고, **차단 대상이 아닌
+   주소일 때 그 함수로 위임**하므로 통과하는 팝언더 주소가 그대로 찍힌다.
+   (가드가 `configurable:false` 라 `defineProperty` 재후킹은 "Cannot redefine
+   property: open" 으로 실패한다 — 반드시 대입을 쓸 것)
+3. 영상을 실제 클릭 → `window.__caught` 확인.
 
 ## on/off 스위치 (v2.7.0)
 
@@ -417,4 +436,9 @@ node --check popup-guard.js && node --check downloader.js && node --check cleane
   greentrafsa/doppiocdn/stripchat.io/xmates/reebr 차단, 플레이어(`sendvid.com`)·
   사이트·jsdelivr·폰트·네이버 통계·Cloudflare Turnstile 은 통과.
   AD_HINTS 도 네이버·트립비토즈·EBS 등 정상 주소에 오탐 없음을 테스트로 확인.
-- version 2.12.0.
+- yamoa58.top 팝언더 (v2.12.1): 목적지 `pagerrentablespotlight.com` 실측,
+  `sendvid.com` 플레이어 iframe 에서 열림. 도메인이 랜덤 단어라 쫓는 대신
+  `sendvid.com` 을 STRICT_POPUP_HOSTS 에 추가(구조적 차단) + 목적지도 id:1·
+  AD_HINTS 에 등록. 엄격 판정이 플레이어 프레임에만 적용되고 사이트 본문·
+  네이버·트립비토즈·EBS 는 영향 없음을 테스트로 확인.
+- version 2.12.1.

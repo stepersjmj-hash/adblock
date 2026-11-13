@@ -2,7 +2,7 @@
 // 모든 사이트에서 페이지 스크립트보다 먼저 MAIN world에서 실행됨
 (() => {
   // 알려진 광고 네트워크 도메인 패턴 (rules.json과 짝을 이룸)
-  const AD_HINTS = /(exoclick|exosrv|exdynsrv|magsrv|realsrv|pemsrv|tsyndicate|trafficstars|juicyads|jads\.co|adsjudo|trafficjunky|adtng|adsterra|highperformanceformat|profitablecpmrate|effectiveratecpm|highcpmgate|popads\.net|popcash|popmyads|popunder|propeller(ads|click)|onclicka|hilltopads|clickadu|clickadilla|adnium|plugrush|trafficfactory|eroadvertising|ero-advertising|adxpansion|ad-maven|javbucks|coverdistilltile|qfanakacp|alfalfaemployeeresource|aboundadmirermyself|portalfluently|vivodemisrentas|illinformed-summer|diagramjawlineunhappy|normal-place\.com|thekav\.co|trafsa|reebr|xmates|smartpop|satisfactorilybewitchgreatness|diapsidbuchloe|lib-net\.dev|swordermislike|mulmhitch|agonizingrest|dtscout|dtscdn|mrktmtrcs|crwdcntrl|histats|rmhfrtnd|alaphoid|nomandswitch|tapioni|flushpersist|nresystems|javhd-trk|theporndude|tesorf|grabyourluck|stripchat|strpst|chapturist|doppiocdn|doppiostreams|show-sb|bakestubborn|chnsrv|twinrdengine|adplsr|ozlinedsp|pxltag|marzaent|newshinyd|uuidksinc|yomeno|yetansd|saawsedge|onaudience|bkcdn|doubleclick|googlesyndication|\.(qpon|cfd)\/)/i;
+  const AD_HINTS = /(exoclick|exosrv|exdynsrv|magsrv|realsrv|pemsrv|tsyndicate|trafficstars|juicyads|jads\.co|adsjudo|trafficjunky|adtng|adsterra|highperformanceformat|profitablecpmrate|effectiveratecpm|highcpmgate|popads\.net|popcash|popmyads|popunder|propeller(ads|click)|onclicka|hilltopads|clickadu|clickadilla|adnium|plugrush|trafficfactory|eroadvertising|ero-advertising|adxpansion|ad-maven|javbucks|coverdistilltile|qfanakacp|alfalfaemployeeresource|aboundadmirermyself|portalfluently|vivodemisrentas|illinformed-summer|diagramjawlineunhappy|normal-place\.com|thekav\.co|trafsa|reebr|xmates|smartpop|pagerrentablespotlight|satisfactorilybewitchgreatness|diapsidbuchloe|lib-net\.dev|swordermislike|mulmhitch|agonizingrest|dtscout|dtscdn|mrktmtrcs|crwdcntrl|histats|rmhfrtnd|alaphoid|nomandswitch|tapioni|flushpersist|nresystems|javhd-trk|theporndude|tesorf|grabyourluck|stripchat|strpst|chapturist|doppiocdn|doppiostreams|show-sb|bakestubborn|chnsrv|twinrdengine|adplsr|ozlinedsp|pxltag|marzaent|newshinyd|uuidksinc|yomeno|yetansd|saawsedge|onaudience|bkcdn|doubleclick|googlesyndication|\.(qpon|cfd)\/)/i;
 
   // 광고가 심한 사이트: 처음부터 엄격 모드 (같은 사이트 팝업 외 전부 차단)
   // 광고 도메인을 계속 바꾸는 사이트는 여기에 추가
@@ -16,7 +16,12 @@
     "nswpedia.com",
     "bestjavporn.com",
     "sextb.net",
-    "turboplays.click"
+    // 임베드 플레이어 호스트. 팝언더는 플레이어 iframe 안에서 열리는데
+    // 목적지 도메인이 매번 바뀌므로(랜덤 단어 조합) 목적지를 쫓는 대신
+    // **플레이어 프레임 자체를 엄격 모드**로 둔다. 영상 재생은 window.open 을
+    // 쓰지 않으므로 안전하고, 사이트 주소가 바뀌어도(yamoa58 → yamoaNN) 유효하다.
+    "turboplays.click",
+    "sendvid.com"
   ];
 
   // 자체 우클릭 메뉴를 정상적으로 쓰는 서비스 — 우클릭 복원을 적용하지 않음
