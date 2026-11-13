@@ -154,6 +154,23 @@
   `turboplays.click` iframe 내부(교차 출처)라 cleaner가 접근 못 함.
   cleaner는 top frame 전용이고, allFrames를 켜도 선택자를 알 수 없어 소용없음.
 
+- yamoa58.top (v2.12.0): 도메인 개별 차단만. **플레이어는 `sendvid.com` iframe**
+  (`.player` 안, 1206x600) — 절대 막지 말 것. 그 외 정상 리소스는
+  `cdn.jsdelivr.net`, `fonts.googleapis.com`, 네이버 통계(`ssl.pstatic.net`,
+  `wcs.pstatic.net`, `wcs.naver.com` — 광고 아님, 그대로 둠).
+  실측 광고: `greentrafsa.com`(`go.`=`/api/models`·`/config`, `creative.`=위젯 자산),
+  `img.doppiocdn.com`(캠 썸네일), `go.stripchat.io`(픽셀), `xmates.com`(`/checkUrl`),
+  `go.reebr.com`(**`/smartpop/` = 팝언더**).
+  - **`whitetrafsa` → `greentrafsa`**: 색깔만 바꾼 같은 캠 광고망. AD_HINTS를
+    `whitetrafsa` 에서 **`trafsa`** 로 넓혀 다음 색깔 변형도 자동 커버.
+  - **`/smartpop/` 경로**는 whitetrafsa·reebr 두 곳에서 공통으로 관측된 팝언더
+    경로 → 호스트가 바뀌어도 잡도록 id:11 정규식으로 차단.
+  - Stripchat 인프라는 TLD를 계속 바꾼다: `.com`(id:5) → `.mov`(v2.9.1) →
+    `.io`(여기). `doppiocdn` 도 `.org`(bestjavporn) → `.com`(여기).
+  - **조사 함정**: 이 사이트는 Cloudflare 봇 검사가 걸려 있어 Browser pane 에서는
+    403 에 막혀 내용을 못 본다(봇 검사는 대신 풀면 안 됨).
+    → 평소 쓰는 크롬(claude-in-chrome)으로 열어야 측정 가능.
+
 ## on/off 스위치 (v2.7.0)
 
 툴바 버튼 → 토글 스위치. 상태는 `chrome.storage.local.enabled` (없으면 켜짐).
@@ -395,4 +412,9 @@ node --check popup-guard.js && node --check downloader.js && node --check cleane
   "Application error..." 로 죽던 문제. 접근자 방식으로 교체.
   확장 켠 크롬에서 콘솔 오류로 원인 특정, 수정안은 단위 테스트 5종으로 검증
   (대입 시 예외 없음 / 읽으면 가드 함수 / 광고·`.qpon` 차단 유지 / 정상 주소 통과).
-- version 2.11.1.
+- yamoa58.top: 광고 도메인 실측 후 id:1에 5개 추가 + `/smartpop/` 정규식(id:11)
+  (v2.12.0). 평소 크롬에서 실제 로드된 리소스에 규칙을 대입해 검증 —
+  greentrafsa/doppiocdn/stripchat.io/xmates/reebr 차단, 플레이어(`sendvid.com`)·
+  사이트·jsdelivr·폰트·네이버 통계·Cloudflare Turnstile 은 통과.
+  AD_HINTS 도 네이버·트립비토즈·EBS 등 정상 주소에 오탐 없음을 테스트로 확인.
+- version 2.12.0.

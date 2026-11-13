@@ -96,6 +96,11 @@
         "onaudience.com",
         "x8y8awcr.xyz",
         "bkcdn.net",
+        "greentrafsa.com",
+        "reebr.com",
+        "xmates.com",
+        "stripchat.io",
+        "doppiocdn.com",
         "googlesyndication.com",
         "doubleclick.net"
       ],
@@ -248,6 +253,15 @@
     "condition": {
       "regexFilter": "/files/banner_\\d+x\\d+\\.html",
       "resourceTypes": ["sub_frame", "xmlhttprequest", "other"]
+    }
+  },
+  {
+    "id": 11,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "regexFilter": "/smartpop/",
+      "resourceTypes": ["script", "sub_frame", "xmlhttprequest", "other"]
     }
   },
   {
