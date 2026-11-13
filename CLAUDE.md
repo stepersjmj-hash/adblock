@@ -176,6 +176,17 @@
     `STRICT_POPUP_HOSTS` 에 넣는 게 정답**. 사이트 주소가 바뀌어도
     (yamoa58 → yamoaNN) 유효하고, 영상 재생은 `window.open` 을 안 써서 안전.
 
+  - **다운로드 버튼** (v2.13.0): sendvid 임베드는 flashvars·HLS 없이
+    `<video><source type="video/mp4" src="videosN.sendvid.com/…mp4?validfrom&validto&rate&hash">`
+    로 직접 재생 → `downloader.js` 의 `DIRECT_HOSTS` + `getDirectInfo()` 가 처리.
+    서명 쿼리가 붙은 src 를 **그대로** 써야 함(Range 요청 206 확인).
+    파일명은 임베드 페이지의 `og:title`(= 원본 글 제목). 임베드 `<title>` 은
+    "Sendvid - Instant video upload" 라 쓰면 안 되고, yamoa 쪽 `<title>` 도
+    "yamoa 야모아" 뿐(제목은 `h1.video-info__title`)이라 og:title 이 정답.
+    버튼은 sendvid iframe 안에 뜨므로(교차 출처라 부모 페이지에 못 넣음)
+    iframe 안 플로팅 버튼은 **우상단**에 둔다(하단은 컨트롤 바).
+    mp4 직접 재생 임베드 호스트가 더 생기면 `DIRECT_HOSTS` 에 추가.
+
 ### 확장이 깔린 채로 팝언더 목적지를 알아내는 법 (v2.12.1에서 확립)
 
 확장을 끌 수 없거나(봇 검사로 Browser pane 접근 불가) 팝언더가 교차 출처
@@ -441,4 +452,7 @@ node --check popup-guard.js && node --check downloader.js && node --check cleane
   `sendvid.com` 을 STRICT_POPUP_HOSTS 에 추가(구조적 차단) + 목적지도 id:1·
   AD_HINTS 에 등록. 엄격 판정이 플레이어 프레임에만 적용되고 사이트 본문·
   네이버·트립비토즈·EBS 는 영향 없음을 테스트로 확인.
-- version 2.12.1.
+- yamoa58.top 다운로드 버튼 (v2.13.0): sendvid 임베드의 mp4 source + og:title 로
+  파일명 생성. 실제 페이지(topic/4403)에서 mp4 감지·파일명("속이 빈 남자의 로나
+  미트라.mp4")·iframe 안 버튼 가시성 확인. 확장 재로드 후 실저장은 사용자 확인 필요.
+- version 2.13.0.

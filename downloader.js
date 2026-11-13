@@ -79,6 +79,26 @@
     return { url, filename: title + postfix };
   }
 
+  // ── mp4 직접 재생 임베드 호스트 (sendvid 등) ─────────────────────
+  // flashvars 도 HLS 도 없이 <video><source src="….mp4?서명"> 로 바로 재생한다.
+  // 서명 쿼리(validfrom/validto/hash)가 붙은 주소를 그대로 받아야 하므로
+  // 페이지에 들어있는 src 를 그대로 쓴다. 제목은 og:title 에 원본 제목이 있다
+  // (임베드 페이지 <title>은 "Sendvid - Instant video upload"라 못 씀).
+  const DIRECT_HOSTS = ["sendvid.com"];
+
+  function getDirectInfo() {
+    const h = location.hostname;
+    if (!DIRECT_HOSTS.some((d) => h === d || h.endsWith("." + d))) return null;
+    const src = document.querySelector('video source[type="video/mp4"], video source');
+    const vid = document.querySelector("video");
+    const url = resolveUrl((src && src.src) || (vid && (vid.currentSrc || vid.src)));
+    if (!url || !/\.mp4(\?|$)/i.test(url)) return null;
+    const og = document.querySelector('meta[property="og:title"]');
+    const title =
+      sanitize(og && og.content) || openerTitle() || usefulDocTitle() || "video";
+    return { url, filename: title + ".mp4" };
+  }
+
   function anchorDownload(info) {
     const a = document.createElement("a");
     a.href = info.url;
@@ -272,7 +292,7 @@
       e.preventDefault();
       e.stopPropagation();
       if (btn.dataset.busy) return; // HLS 수신 중 중복 클릭 방지
-      const fresh = getVideoInfo() || getHlsInfo();
+      const fresh = getVideoInfo() || getDirectInfo() || getHlsInfo();
       if (!fresh) {
         btn.textContent = "⬇ URL을 찾는 중...";
         setTimeout(() => (btn.textContent = "⬇ 영상 다운로드"), 1500);
@@ -318,12 +338,16 @@
   }
 
   function styleFloating(btn) {
+    // iframe(임베드 플레이어) 안에서는 화면 = 플레이어라 하단은 컨트롤 바·자막
+    // 자리 → 우상단에 둔다
+    const inFrame = window.top !== window.self;
     Object.assign(btn.style, {
       position: "fixed",
-      right: "20px",
-      bottom: "70px", // 전체화면 플레이어의 하단 컨트롤 바를 가리지 않게
+      right: inFrame ? "12px" : "20px",
       margin: "0"
     });
+    if (inFrame) btn.style.top = "12px";
+    else btn.style.bottom = "70px"; // 전체화면 플레이어의 하단 컨트롤 바를 가리지 않게
   }
 
   // 영상 아래의 "보이는" 위치를 우선 시도하고, 가려지면 다음 후보로,
@@ -378,7 +402,7 @@
 
   // flashvars 가 준비되면 버튼을 만들고, 이후에도 버튼이 사라지면 다시 삽입 (자가 복구)
   function ensureButton() {
-    const info = getVideoInfo() || getHlsInfo();
+    const info = getVideoInfo() || getDirectInfo() || getHlsInfo();
     if (!info) return; // 아직 영상 정보 없음 (또는 영상 페이지 아님)
     const existing = document.getElementById(BTN_ID);
     if (existing) {
