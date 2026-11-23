@@ -324,6 +324,15 @@ MAIN world(flashvars 접근 때문)라 `chrome.*` 를 못 쓴다 →
      보관만 한다(예외 없음). 차단 대상이 아닌 주소만 그 사이트 래퍼로 넘긴다.
    - 교훈: 전역 객체를 **동결/고정하는 방어는 사이트를 깨뜨린다.** 가로채되
      던지지 말 것.
+   - **후속 함정 — 무한 재귀** (v2.13.3, 쿠팡 Wing `vendor-inventory/formV2`에서
+     `Uncaught RangeError: Maximum call stack size exceeded` @ popup-guard.js):
+     사이트가 `const o = window.open; window.open = (...a) => o(...a)` 로 감싸면
+     o 는 우리 guardedOpen 이라 guardedOpen → siteOpen(래퍼) → o → siteOpen → …
+     서로 부르며 끝없이 돈다(하네스로 1회 호출에 래퍼 3,463번 실행 재현).
+     try/catch 가 일부를 삼켜서 **같은 팝업이 두 번 열리는** 증상도 있었음.
+     → `inSiteOpen` 플래그로 재진입 시 사이트 래퍼를 건너뛰고 realOpen 으로 연다
+     (`siteOpen === guardedOpen` 대입도 무시). 다른 프레임의 guardedOpen 끼리
+     서로 물리는 경우도 한 번 왕복 후 끝난다.
 
 1. **광고 도메인이 매 접속마다 바뀜** — kissjav의 광고는 `coverdistilltile.com`,
    `qfanakacp.in`, `alfalfaemployeeresource.com` 처럼 랜덤 영단어 도메인을 씀.
@@ -475,4 +484,7 @@ node --check popup-guard.js && node --check downloader.js && node --check cleane
   iframe 에 제목 전달 → "IP 아이패드(헤어롤).ts". 확장 재로드 후 실저장은 사용자 확인 필요.
 - yamoa topic/892 파일명 (v2.13.2): iframe 에서 부모 글 제목을 원본 탭 제목보다
   우선 → "IP 깔판, 한글 단어.ts" (하네스로 재현·확인).
-- version 2.13.2.
+- 쿠팡 Wing 크래시 수정 (v2.13.3): 사이트가 window.open 을 감쌀 때 생기던 무한 재귀를
+  재진입 플래그로 차단. 하네스로 래퍼 1회 실행·1회 열림·광고 차단 유지 확인.
+  실제 Wing 화면은 로그인 필요라 사용자 확인 필요.
+- version 2.13.3.

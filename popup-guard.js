@@ -84,6 +84,13 @@
   // 사이트가 자기 용도로 window.open 을 감싸 둔 경우 그 함수를 기억해 둔다.
   // (차단 대상이 아닌 주소는 사이트 것으로 열어줘야 원래 동작이 유지됨)
   let siteOpen = null;
+  // siteOpen 을 부르는 중인지 표시 — **무한 재귀 방지** (v2.13.3)
+  //   사이트가 흔히 `const o = window.open; window.open = (...a) => o(...a)` 처럼
+  //   감싸는데, 이때 o 는 우리 guardedOpen 이다. 그러면
+  //   guardedOpen → siteOpen(래퍼) → o(=guardedOpen) → siteOpen → … 끝없이 돌다
+  //   "Maximum call stack size exceeded" 로 죽는다 (쿠팡 Wing 에서 실제 발생).
+  //   래퍼 안에서 다시 들어오면 사이트 래퍼를 건너뛰고 원래 open 으로 연다.
+  let inSiteOpen = false;
 
   function guardedOpen(url, ...rest) {
     try {
@@ -96,10 +103,14 @@
         return fakeWindow();
       }
       // 통과시킬 주소만 사이트 래퍼(있으면)에 넘긴다 → 광고는 여기까지 못 옴
-      if (typeof siteOpen === "function") {
+      if (typeof siteOpen === "function" && siteOpen !== guardedOpen && !inSiteOpen) {
+        inSiteOpen = true;
         try {
           return siteOpen.call(window, url, ...rest);
-        } catch (e) {}
+        } catch (e) {
+        } finally {
+          inSiteOpen = false;
+        }
       }
       return realOpen(url, ...rest);
     } catch (e) {
