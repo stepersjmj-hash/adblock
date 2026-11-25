@@ -203,6 +203,30 @@
     `parentTitle` 을 최우선으로. openerTitle 은 임베드가 **최상위 탭**으로 열린
     경우(watchfreejav → xxembed 새 탭)를 위한 것.
 
+- egguniverse.com (잉글리시에그 프리뷰 플레이리스트, v2.14.0): 광고 사이트 아님 —
+  다운로드 버튼만. `/preview-playlist/<id>` 에서 영상 항목을 누르면
+  `<video src="customer-….cloudflarestream.com/<토큰>/manifest/video.m3u8">` 로
+  **브라우저가 HLS 를 직접 재생**한다(jwplayer·hls.js 없음, 클릭 전엔 video 없음).
+  → `getNativeHlsInfo()`: http(s) `.m3u8` src 를 가진 `<video>` 가 있으면 버튼.
+  - **영상·소리가 분리된 HLS**: 마스터에 `#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="group_audio"`
+    가 있고 variant 는 영상만 담는다. 기존처럼 영상 세그먼트만 이어 붙이면 **무음**.
+    → `resolveMediaPlaylist()` 가 고른 variant 의 `AUDIO` 그룹 주소도 돌려주고,
+    둘 다 fMP4(`#EXT-X-MAP`)면 `muxFmp4()` 로 한 MP4 로 합친다.
+  - **muxFmp4 원리**: init 은 각각 트랙 1개(tkhd id=1). 오디오 tkhd/trex/tfhd 의
+    track_ID 만 2로 바꾸고 두 trak 을 moov 하나에 넣는다. tfhd flags 0x20038
+    (default-base-is-moof)라 trun 오프셋이 각 moof 기준 → moof+mdat 쌍을 **그대로**
+    번갈아 붙이면 된다. styp/sidx 는 버림, mfhd 번호는 다시 매김.
+    두 init 의 mvhd timescale(1000)이 같아 elst 재계산 불필요(다르면 손봐야 함).
+  - Cloudflare Stream `/downloads/default.mp4` 는 403(소유자가 MP4 다운로드 꺼둠).
+    `/manifest/video.mpd`(DASH)는 열려 있으나 안 씀.
+  - 토큰에 `geoip.country` 규칙이 있어 국내 IP 에서만 재생됨. 토큰 만료 ~2시간.
+  - 파일명: `[class*=playerTitle]`(= h1, 재생 중인 영상 제목). `og:title` 은
+    "프리뷰 플레이리스트 | 잉글리시에그" 고정이라 쓰면 안 됨.
+  - 검증: 실제 `buildHls()` 를 node 로 돌려 받은 파일을 ffprobe — 720p h264 +
+    aac, 1:44(페이지 표기와 일치), 전체 디코드 오류 없음, 음량 정상(-17.6 dB),
+    60초 지점 프레임 정상. 버튼은 제목 바로 아래, 가림 없음.
+  - 분리 오디오가 TS 형식이면 합치지 못하고 "분리 오디오(TS) 미지원" 오류를 낸다.
+
 ### 확장이 깔린 채로 팝언더 목적지를 알아내는 법 (v2.12.1에서 확립)
 
 확장을 끌 수 없거나(봇 검사로 Browser pane 접근 불가) 팝언더가 교차 출처
@@ -388,6 +412,9 @@ MAIN world(flashvars 접근 때문)라 `chrome.*` 를 못 쓴다 →
   `downloader.js`의 `HLS_HOSTS`에 도메인 추가. jwplayer 소스에서 m3u8을 얻어
   최고 화질 variant의 세그먼트를 fetch로 전부 받아(플레이어와 같은 경로라
   CORS 허용됨) 하나의 .ts로 합쳐 저장. AES-128 암호화 스트림은 미지원(에러 표시).
+  fMP4(`#EXT-X-MAP`) 스트림은 .mp4 로 저장하고, 오디오가 별도 트랙이면 합친다
+  (v2.14.0, 위 egguniverse 항목 참고). `<video src=".m3u8">` 로 직접 재생하는
+  페이지는 jwplayer 없이도 `getNativeHlsInfo()` 가 잡는다.
   호스트를 계속 바꾸므로 목록에 없어도 URL이 `/embed/…` `/embed-…` `/e/…`
   형태면 자동 인정(`isEmbedLikePage`) — jwplayer HLS 소스가 실제로 있을 때만
   버튼이 뜨므로 일반 사이트엔 영향 없음.
@@ -487,4 +514,7 @@ node --check popup-guard.js && node --check downloader.js && node --check cleane
 - 쿠팡 Wing 크래시 수정 (v2.13.3): 사이트가 window.open 을 감쌀 때 생기던 무한 재귀를
   재진입 플래그로 차단. 하네스로 래퍼 1회 실행·1회 열림·광고 차단 유지 확인.
   실제 Wing 화면은 로그인 필요라 사용자 확인 필요.
-- version 2.13.3.
+- egguniverse.com 다운로드 (v2.14.0): 네이티브 HLS 감지 + 분리 오디오 fMP4 합치기.
+  node 로 실제 스트림을 받아 ffprobe·디코드·음량·프레임으로 검증. 확장 재로드 후
+  버튼 클릭 실저장은 사용자 확인 필요.
+- version 2.14.0.
