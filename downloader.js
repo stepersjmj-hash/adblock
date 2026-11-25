@@ -253,28 +253,65 @@
   }
 
   // ── 네이티브 HLS: <video src="….m3u8"> 를 브라우저가 직접 재생하는 페이지 ──
-  // (egguniverse.com = 잉글리시에그 프리뷰, Cloudflare Stream). jwplayer 가 없어서
+  // (egguniverse.com = 잉글리시에그, Cloudflare Stream). jwplayer 가 없어서
   // 위 getHlsInfo 로는 못 잡는다. 재생 중인 m3u8 주소를 그대로 쓴다.
   // blob: 주소(MSE 플레이어)는 http 가 아니라서 자연히 제외된다.
-  function getNativeHlsInfo() {
-    const v = [...document.querySelectorAll("video")].find((el) =>
-      /^https?:\/\/[^#]*\.m3u8(\?|$)/i.test(el.currentSrc || el.src || "")
+  //
+  // 한 페이지에 영상이 여러 개일 수 있어서(미니 송북: Animation/Sitcom/Chant)
+  // 이 경로만 **영상마다 버튼**을 따로 단다 (아래 ensureNativeHlsButtons).
+  function nativeHlsSrc(v) {
+    const s = v.currentSrc || v.src || "";
+    return /^https?:\/\/[^#]*\.m3u8(\?|$)/i.test(s) ? s : null;
+  }
+
+  // 재생 전에는 src 가 비어 있고, 사이트의 "○○ 영상 재생" 버튼을 눌러야
+  // 그때 API 로 스트림 주소(토큰)를 받아 넣는다. 그런 사이트에서는 재생 전 영상에도
+  // 버튼을 달고, 누르면 사이트 재생 버튼을 대신 눌러 주소가 생기길 기다린다.
+  // (재생 전 영상이 HLS 인지 미리 알 방법이 없어서 확인된 호스트에만 적용)
+  const NATIVE_HLS_PENDING_HOSTS = ["egguniverse.com"];
+  const allowPending = NATIVE_HLS_PENDING_HOSTS.some(
+    (h) => location.hostname === h || location.hostname.endsWith("." + h)
+  );
+
+  function findPlayTrigger(v) {
+    let n = v.parentElement;
+    for (let d = 0; n && d < 3; d++, n = n.parentElement) {
+      const t = [...n.querySelectorAll("button, [role=button]")].find(
+        (b) =>
+          !b.contains(v) &&
+          /재생|play/i.test((b.getAttribute("aria-label") || "") + " " + b.textContent)
+      );
+      if (t) return { trigger: t, box: n };
+    }
+    return null;
+  }
+
+  // 영상 한 개를 감싸는 블록 (버튼은 이 블록 바로 뒤에 붙인다).
+  // 플레이어 요소(.videoPlayer 등)는 재생 전엔 크기가 0 이라 한 단계 위를 쓴다.
+  function videoBox(v) {
+    const p = v.parentElement;
+    if (!p) return null;
+    return /player/i.test(p.className || "") && p.parentElement ? p.parentElement : p;
+  }
+
+  // 파일명: "곡/영상 제목 - 구분(Animation 등)". 구분은 영상이 여러 개일 때만.
+  function nativeHlsFilename(v, box, multi) {
+    const t = document.querySelector(
+      '[class*="songTitle"], [class*="playerTitle"], [class*="player-title"], h1'
     );
-    if (!v) return null;
-    const url = v.currentSrc || v.src;
-    // 재생 중인 영상 제목: 플레이어 제목 요소 → h1 → 쓸 만한 <title> → og:title
-    // (egguniverse 의 og:title 은 "프리뷰 플레이리스트" 고정이라 마지막 순위)
-    const pt = document.querySelector('[class*="playerTitle"], [class*="player-title"]');
-    const h1 = document.querySelector("h1");
     const og = document.querySelector('meta[property="og:title"]');
-    const title =
-      sanitize(pt && pt.textContent) ||
-      sanitize(h1 && h1.textContent) ||
+    let name =
+      sanitize(t && t.textContent) ||
       usefulDocTitle() ||
       parentTitle ||
       trimSiteName(og && og.content) ||
       "video";
-    return { type: "hls", url, filename: title + ".mp4" };
+    if (multi && box) {
+      const prev = box.previousElementSibling;
+      const label = sanitize(prev && prev.innerText);
+      if (label && label.length <= 30) name += " - " + label;
+    }
+    return name + ".mp4";
   }
 
   async function fetchText(url) {
@@ -524,7 +561,7 @@
       e.preventDefault();
       e.stopPropagation();
       if (btn.dataset.busy) return; // HLS 수신 중 중복 클릭 방지
-      const fresh = getVideoInfo() || getDirectInfo() || getHlsInfo() || getNativeHlsInfo();
+      const fresh = getVideoInfo() || getDirectInfo() || getHlsInfo();
       if (!fresh) {
         btn.textContent = "⬇ URL을 찾는 중...";
         setTimeout(() => (btn.textContent = "⬇ 영상 다운로드"), 1500);
@@ -635,7 +672,7 @@
   // flashvars 가 준비되면 버튼을 만들고, 이후에도 버튼이 사라지면 다시 삽입 (자가 복구)
   function ensureButton() {
     askParentTitle(); // 부모가 늦게 준비될 수 있어 받을 때까지 매 주기 물어봄
-    const info = getVideoInfo() || getDirectInfo() || getHlsInfo() || getNativeHlsInfo();
+    const info = getVideoInfo() || getDirectInfo() || getHlsInfo();
     if (!info) return; // 아직 영상 정보 없음 (또는 영상 페이지 아님)
     const existing = document.getElementById(BTN_ID);
     if (existing) {
@@ -649,7 +686,87 @@
     placeButton(createButton());
   }
 
+  // ── 영상마다 버튼 (네이티브 HLS) ────────────────────────────────
+  const NATIVE_BTN_CLASS = "mj-download-btn-hls";
+  const nativeBtns = new WeakMap(); // video → { btn, box }
+
+  function waitForSrc(v, ms) {
+    return new Promise((resolve, reject) => {
+      const t0 = Date.now();
+      (function poll() {
+        const s = nativeHlsSrc(v);
+        if (s) return resolve(s);
+        if (Date.now() - t0 > ms) return reject(new Error("영상 주소를 못 받음"));
+        setTimeout(poll, 300);
+      })();
+    });
+  }
+
+  function createNativeButton(v, box) {
+    const btn = document.createElement("button");
+    btn.className = NATIVE_BTN_CLASS;
+    btn.type = "button";
+    btn.textContent = "⬇ 영상 다운로드";
+    Object.assign(btn.style, BTN_STYLE);
+    btn.addEventListener("mouseenter", () => (btn.style.background = "#c2185b"));
+    btn.addEventListener("mouseleave", () => (btn.style.background = "#e91e63"));
+    btn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (btn.dataset.busy) return;
+      btn.dataset.busy = "1";
+      try {
+        let url = nativeHlsSrc(v);
+        if (!url) {
+          // 아직 재생 전 → 사이트의 재생 버튼을 대신 눌러 주소를 받게 한다
+          const pt = findPlayTrigger(v);
+          if (!pt) throw new Error("먼저 영상을 재생하세요");
+          btn.textContent = "⬇ 영상 주소 받는 중...";
+          pt.trigger.click();
+          url = await waitForSrc(v, 15000);
+        }
+        const multi = document.querySelectorAll("video").length > 1;
+        const info = { type: "hls", url, filename: nativeHlsFilename(v, box, multi) };
+        btn.textContent = "⬇ 준비 중...";
+        const ext = await startHlsDownload(info, (done, total) => {
+          btn.textContent =
+            "⬇ 받는 중 " + Math.floor((done / total) * 100) + "% (" + done + "/" + total + ")";
+        });
+        btn.textContent =
+          ext === ".ts" ? "✓ 저장됨 (.ts — VLC/팟플레이어로 재생)" : "✓ 저장됨";
+      } catch (err) {
+        btn.textContent = "⬇ 실패: " + ((err && err.message) || "오류");
+      } finally {
+        delete btn.dataset.busy;
+        setTimeout(() => (btn.textContent = "⬇ 영상 다운로드"), 8000);
+      }
+    });
+    return btn;
+  }
+
+  function ensureNativeHlsButtons() {
+    for (const v of document.querySelectorAll("video")) {
+      let rec = nativeBtns.get(v);
+      if (!rec) {
+        const ready = !!nativeHlsSrc(v);
+        const pending = !ready && allowPending && findPlayTrigger(v);
+        if (!ready && !pending) continue;
+        // 재생 전에 찾은 블록을 기억해 둔다 (재생 후 재생 버튼이 사라져도 같은 자리)
+        const box = (pending && pending.box) || videoBox(v);
+        if (!box || !box.parentElement) continue;
+        rec = { btn: createNativeButton(v, box), box };
+        nativeBtns.set(v, rec);
+      }
+      // React 가 다시 그리며 버튼을 지웠으면 다시 붙인다
+      if (!rec.btn.isConnected && rec.box.isConnected && rec.box.parentElement) {
+        rec.box.parentElement.insertBefore(rec.btn, rec.box.nextSibling);
+      }
+    }
+  }
+
   // 주기적으로 상태 확인: 늦게 뜨는 플레이어, 페이지 내 이동, 버튼 제거/가림 모두 대응
   ensureButton();
   setInterval(ensureButton, 1000);
+  ensureNativeHlsButtons();
+  setInterval(ensureNativeHlsButtons, 1000);
 })();

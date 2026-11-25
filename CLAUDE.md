@@ -226,6 +226,23 @@
     aac, 1:44(페이지 표기와 일치), 전체 디코드 오류 없음, 음량 정상(-17.6 dB),
     60초 지점 프레임 정상. 버튼은 제목 바로 아래, 가림 없음.
   - 분리 오디오가 TS 형식이면 합치지 못하고 "분리 오디오(TS) 미지원" 오류를 낸다.
+  - **영상 여러 개 페이지** (v2.14.1): `/free-trial/mini-song-book?ep=…` 는 한 곡에
+    영상 3개(Animation/Sitcom/Chant). 버튼이 `#mj-download-btn` 하나뿐이라
+    첫 영상만 받을 수 있었다. 게다가 **재생 전엔 `<video>` src 가 비어 있고**,
+    "○○ 영상 재생" 버튼을 누르는 순간 `POST api.egguniverse.com/api/v1/cloudflare/generate/free`
+    로 그 영상 하나의 토큰을 받아 넣는다(HTML·Next 데이터에 주소 없음).
+    → 네이티브 HLS 는 `ensureNativeHlsButtons()` 가 **영상마다** 버튼
+    (`.mj-download-btn-hls`)을 영상 블록(`.videoContent` = 재생버튼+플레이어를
+    감싼 요소) 바로 뒤에 단다. 재생 전 영상은(`NATIVE_HLS_PENDING_HOSTS` 한정)
+    버튼을 누르면 사이트 재생 버튼을 대신 눌러 src 가 생길 때까지(최대 15초)
+    기다린 뒤 받는다. 사이트 API 를 직접 부르지 않으므로 API 가 바뀌어도 안전.
+    파일명 `<songTitle> - <videoCategory>.mp4` (예: "Dunk! Dunk! Dunk! - Sitcom.mp4").
+    단일 버튼 경로(`ensureButton`)에서는 네이티브 HLS 를 뺐다(중복 방지).
+  - 검증 방법(확장 재로드 없이 새 코드 주입): 스크래치 폴더에서 CORS 헤더를 붙인
+    `http.server` 를 127.0.0.1 에 띄우고, 페이지에서 `fetch('http://127.0.0.1:8765/downloader.js')`
+    → `(0,eval)(code)`. 실제 저장은 `HTMLAnchorElement.prototype.click` 을 가로채
+    blob 이름·크기만 기록(사용자 다운로드 폴더에 파일을 만들지 않게).
+    설치된 옛 버전도 같이 돌아서 화면에 옛 버튼이 겹쳐 보일 수 있음에 주의.
 
 ### 확장이 깔린 채로 팝언더 목적지를 알아내는 법 (v2.12.1에서 확립)
 
@@ -517,4 +534,7 @@ node --check popup-guard.js && node --check downloader.js && node --check cleane
 - egguniverse.com 다운로드 (v2.14.0): 네이티브 HLS 감지 + 분리 오디오 fMP4 합치기.
   node 로 실제 스트림을 받아 ffprobe·디코드·음량·프레임으로 검증. 확장 재로드 후
   버튼 클릭 실저장은 사용자 확인 필요.
-- version 2.14.0.
+- egguniverse 영상 여러 개 (v2.14.1): 영상마다 버튼, 재생 전 영상은 버튼이 재생을
+  대신 눌러 주소를 받음. 미니 송북 페이지에 새 코드를 주입해 버튼 3개 배치 확인,
+  재생 전이던 Sitcom 을 버튼만으로 받아 "Dunk! Dunk! Dunk! - Sitcom.mp4"(66MB) 생성 확인.
+- version 2.14.1.
